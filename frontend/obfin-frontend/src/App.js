@@ -9,6 +9,10 @@ function App() {
       <Routes>
         {/* Public route */}
         <Route
+          path="/login"
+          element={<Login />}
+        />
+         <Route
           path="/"
           element={<Login />}
         />
