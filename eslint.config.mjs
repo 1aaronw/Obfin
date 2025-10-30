@@ -9,8 +9,8 @@ export default [
   {
     ignores: ["build/*", "node_modules/*"],
   },
-  { files: ["**/*.{js,mjs,cjs,ts,jsx,tsx}"] },
-  { files: ["**/*.js"], languageOptions: { sourceType: "commonjs" } },
+  { files: ["src/**/*.{js,mjs,cjs,ts,jsx,tsx}"] },
+  { files: ["**/*.js"], languageOptions: { sourceType: "module" } },
   {
     languageOptions: {
       globals: { ...globals.node, ...globals.browser, ...globals.jest },

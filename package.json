@@ -22,7 +22,7 @@
     "eject": "react-scripts eject",
     "format": "npx prettier --write .",
     "check": "npx prettier --check .",
-    "eslint": "npx eslint -c eslint.config.mjs",
+    "eslint": "npx eslint -c eslint.config.mjs --max-warnings=0",
     "prepare": "husky"
   },
   "eslintConfig": {
@@ -59,6 +59,7 @@
     "prettier": "^3.6.2",
     "prettier-plugin-tailwindcss": "^0.7.1",
     "tailwindcss": "^3.3.3",
+    "typescript": "^4.9.5",
     "typescript-eslint": "^8.46.2"
   }
 }
