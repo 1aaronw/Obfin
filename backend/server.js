@@ -27,7 +27,7 @@ app.use(
         : cb(new Error("Not allowed by CORS"));
     },
     credentials: true,
-  })
+  }),
 );
 
 // Needed for ES Modules // Firebase admin setup
@@ -38,7 +38,7 @@ const __dirname = path.dirname(__filename);
 // Load Firebase Admin SDK key manually
 const serviceAccountPath = path.join(
   __dirname,
-  "config/serviceAccountKey.json"
+  "config/serviceAccountKey.json",
 );
 const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, "utf-8"));
 

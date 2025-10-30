@@ -1,0 +1,40 @@
+{
+  "name": "obfin",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+  "format": "run-s frontend-format backend-format",
+  "check": "run-s --continue-on-error frontend-check backend-check",
+  "eslint": "run-s --continue-on-error frontend-eslint backend-eslint",
+  "prepare": "husky",
+  
+  "frontend-format": "npm --prefix frontend run format",
+  "backend-format": "npm --prefix backend run format",
+  "frontend-check": "npm --prefix frontend run check",
+  "backend-check": "npm --prefix backend run check",
+  "frontend-eslint": "npm --prefix frontend run eslint",
+  "backend-eslint": "npm --prefix backend run eslint"
+},
+  "devDependencies": {
+    "@eslint/js": "^9.38.0",
+    "@tailwindcss/postcss": "^4.1.16",
+    "@tanstack/eslint-plugin-query": "^5.91.2",
+    "@typescript-eslint/eslint-plugin": "^5.62.0",
+    "@typescript-eslint/parser": "^5.62.0",
+    "autoprefixer": "^10.4.14",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.6",
+    "npm-run-all": "^4.1.5",
+    "postcss": "^8.4.24",
+    "prettier": "^3.6.2",
+    "prettier-plugin-tailwindcss": "^0.7.1",
+    "tailwindcss": "^3.3.3",
+    "typescript": "^4.9.5",
+    "typescript-eslint": "^8.46.2"
+  }
+}
