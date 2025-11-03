@@ -8,24 +8,12 @@ function App() {
     <Router>
       <Routes>
         {/* Public route */}
-        <Route
-          path="/login"
-          element={<Login />}
-        />
-         <Route
-          path="/"
-          element={<Login />}
-        />
+        <Route path="/login" element={<Login />} />
+        <Route path="/" element={<Login />} />
 
         {/* Protected dashboard routes with layout */}
-        <Route
-          path="/"
-          element={<Layout />}
-        >
-          <Route
-            path="dashboard"
-            element={<Dashboard />}
-          />
+        <Route path="/" element={<Layout />}>
+          <Route path="dashboard" element={<Dashboard />} />
           {/* You’ll add more pages here later */}
         </Route>
       </Routes>

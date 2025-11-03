@@ -18,15 +18,13 @@ export default function Layout() {
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 z-40 h-full w-64 bg-gray-800 text-white transform transition-transform duration-300 ease-in-out
-        ${isOpen ? "translate-x-0" : "-translate-x-full"} 
-        md:translate-x-0 md:static md:w-64`}
+        className={`fixed left-0 top-0 z-40 h-full w-64 transform bg-gray-800 text-white transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "-translate-x-full"} md:static md:w-64 md:translate-x-0`}
       >
         {/* Sidebar header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-700">
+        <div className="flex items-center justify-between border-b border-gray-700 p-6">
           <h2 className="text-2xl font-bold">Obfin</h2>
           <button
-            className="md:hidden text-gray-300 hover:text-white"
+            className="text-gray-300 hover:text-white md:hidden"
             onClick={closeSidebar}
           >
             <X size={24} />
@@ -35,34 +33,19 @@ export default function Layout() {
 
         {/* Sidebar nav */}
         <nav className="flex flex-col space-y-2 p-4">
-          <Link
-            to="/dashboard"
-            className="hover:bg-gray-700 p-2 rounded"
-          >
+          <Link to="/dashboard" className="rounded p-2 hover:bg-gray-700">
             Dashboard
           </Link>
-          <Link
-            to="/analytics"
-            className="hover:bg-gray-700 p-2 rounded"
-          >
+          <Link to="/analytics" className="rounded p-2 hover:bg-gray-700">
             Analytics
           </Link>
-          <Link
-            to="/advisor"
-            className="hover:bg-gray-700 p-2 rounded"
-          >
+          <Link to="/advisor" className="rounded p-2 hover:bg-gray-700">
             AI Advisor
           </Link>
-          <Link
-            to="/transactions"
-            className="hover:bg-gray-700 p-2 rounded"
-          >
+          <Link to="/transactions" className="rounded p-2 hover:bg-gray-700">
             Transactions
           </Link>
-          <Link
-            to="/settings"
-            className="hover:bg-gray-700 p-2 rounded"
-          >
+          <Link to="/settings" className="rounded p-2 hover:bg-gray-700">
             Settings
           </Link>
         </nav>
@@ -71,20 +54,17 @@ export default function Layout() {
       {/* Overlay for mobile/ipad */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black opacity-50 z-30 md:hidden"
+          className="fixed inset-0 z-30 bg-black opacity-50 md:hidden"
           onClick={closeSidebar}
         ></div>
       )}
 
       {/* Main content area */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex flex-1 flex-col">
         {/* Top bar for mobile */}
         <header className="flex items-center justify-between bg-white p-4 shadow-md md:hidden">
           <button onClick={toggleSidebar}>
-            <Menu
-              size={24}
-              className="text-gray-800"
-            />
+            <Menu size={24} className="text-gray-800" />
           </button>
           <h1 className="text-lg font-semibold text-gray-800">
             {location.pathname === "/dashboard"
@@ -94,7 +74,7 @@ export default function Layout() {
         </header>
 
         {/* Outlet for page content */}
-        <main className="flex-1 p-8 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto p-8">
           <Outlet />
         </main>
       </div>
