@@ -5,33 +5,33 @@ on:
     branches: [main]
 
 jobs:
-  build:
-
+  frontend:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v5
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20.x'
-
-       # Frontend
-  Frontend:
       - name: Install frontend dependencies
         run: npm ci
         working-directory: ./frontend
-
       - name: Build frontend
         run: npm run build
         working-directory: ./frontend
 
-      # Backend
-  Backend:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
       - name: Install backend dependencies
         run: npm ci
         working-directory: ./backend
-      #dant test need to get owner permissions to create github secret
+      # Can't run backend dev without secret
       # - name: Build backend
-      #   run: npm run dev & sleep 10 kill $! #10 secs to start up and stops the server
-      #   working-directory: ./backend 
+      #   run: npm run dev & sleep 10; kill $!
+      #   working-directory: ./backend
