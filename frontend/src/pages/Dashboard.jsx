@@ -1,6 +1,6 @@
 import { signOut } from "firebase/auth";
 import { auth } from "../firebase/firebase";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   PieChart,
   Pie,
@@ -28,15 +28,72 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const categoryColors = {
-    housing: "#3B82F6",
-    utilities: "#8B5CF6",
-    entertainment: "#EC4899",
-    insurance: "#EF4444",
-    food: "#10B981",
-    transportation: "#F59E0B",
-    healthcare: "#06B6D4",
-    other: "#6B7280",
+  const processSpendingData = useCallback((spending) => {
+    const categories = {};
+    const categoryColors = {
+      housing: "#3B82F6",
+      utilities: "#8B5CF6",
+      entertainment: "#EC4899",
+      insurance: "#EF4444",
+      food: "#10B981",
+      transportation: "#F59E0B",
+      healthcare: "#06B6D4",
+      other: "#6B7280",
+    };
+    let total = 0;
+
+    Object.values(spending).forEach((transaction) => {
+      const category = transaction.category || "other";
+      const amount = parseFloat(transaction.amount) || 0;
+
+      categories[category] = (categories[category] || 0) + amount;
+      total += amount;
+    });
+
+    const chartData = Object.entries(categories).map(([name, value]) => ({
+      name,
+      value: parseFloat(value.toFixed(2)),
+      percentage: Math.round((value / total) * 100),
+      color: categoryColors[name] || categoryColors.other,
+    }));
+
+    setCategoryData(chartData);
+    setTotalSpent(parseFloat(total.toFixed(2)));
+  }, []);
+
+  const processBudgetData = (budgets, spending) => {
+    const spendingByCategory = {};
+
+    if (spending) {
+      Object.values(spending).forEach((transaction) => {
+        const category = transaction.category || "other";
+        const amount = parseFloat(transaction.amount) || 0;
+        spendingByCategory[category] =
+          (spendingByCategory[category] || 0) + amount;
+      });
+    }
+
+    const chartData = Object.entries(budgets).map(
+      ([category, budgetAmount]) => ({
+        category,
+        actual: parseFloat((spendingByCategory[category] || 0).toFixed(2)),
+        budget: parseFloat(budgetAmount),
+      }),
+    );
+
+    setBudgetData(chartData);
+  };
+
+  const processTrendData = (trends) => {
+    const chartData = Object.entries(trends)
+      .map(([month, amount]) => ({
+        month,
+        spending: parseFloat(amount),
+      }))
+      .sort((a, b) => new Date(a.month) - new Date(b.month))
+      .slice(-5); // Last x months
+
+    setTrendData(chartData);
   };
 
   useEffect(() => {
@@ -90,65 +147,7 @@ export default function Dashboard() {
       },
     );
     return () => unsubscribe();
-  }, []);
-
-  const processSpendingData = (spending) => {
-    const categories = {};
-    let total = 0;
-
-    Object.values(spending).forEach((transaction) => {
-      const category = transaction.category || "other";
-      const amount = parseFloat(transaction.amount) || 0;
-
-      categories[category] = (categories[category] || 0) + amount;
-      total += amount;
-    });
-
-    const chartData = Object.entries(categories).map(([name, value]) => ({
-      name,
-      value: parseFloat(value.toFixed(2)),
-      percentage: Math.round((value / total) * 100),
-      color: categoryColors[name] || categoryColors.other,
-    }));
-
-    setCategoryData(chartData);
-    setTotalSpent(parseFloat(total.toFixed(2)));
-  };
-
-  const processBudgetData = (budgets, spending) => {
-    const spendingByCategory = {};
-
-    if (spending) {
-      Object.values(spending).forEach((transaction) => {
-        const category = transaction.category || "other";
-        const amount = parseFloat(transaction.amount) || 0;
-        spendingByCategory[category] =
-          (spendingByCategory[category] || 0) + amount;
-      });
-    }
-
-    const chartData = Object.entries(budgets).map(
-      ([category, budgetAmount]) => ({
-        category,
-        actual: parseFloat((spendingByCategory[category] || 0).toFixed(2)),
-        budget: parseFloat(budgetAmount),
-      }),
-    );
-
-    setBudgetData(chartData);
-  };
-
-  const processTrendData = (trends) => {
-    const chartData = Object.entries(trends)
-      .map(([month, amount]) => ({
-        month,
-        spending: parseFloat(amount),
-      }))
-      .sort((a, b) => new Date(a.month) - new Date(b.month))
-      .slice(-5); // Last x months
-
-    setTrendData(chartData);
-  };
+  }, [processSpendingData]);
 
   const handleSignOut = async () => {
     try {
