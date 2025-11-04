@@ -29,7 +29,7 @@ jobs:
       - name: Install backend dependencies
         run: npm ci
         working-directory: ./backend
-
-      - name: Build backend
-        run: npm run dev & sleep 10 kill $! #10 secs to start up and stops the server
-        working-directory: ./backend
+      #dant test need to get owner permissions to create github secret
+      # - name: Build backend
+      #   run: npm run dev & sleep 10 kill $! #10 secs to start up and stops the server
+      #   working-directory: ./backend 
