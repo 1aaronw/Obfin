@@ -30,7 +30,7 @@ function Chatbot() {
 
     const userMessage = currentMessage.trim();
     setCurrentMessage("");
-    setMessages(prev => [...prev, { type: 'user', text: userMessage }]);
+    setMessages((prev) => [...prev, { type: "user", text: userMessage }]);
     setChatLoading(true);
 
     try {
@@ -45,30 +45,39 @@ function Chatbot() {
       const data = await response.json();
 
       if (response.ok) {
-        setMessages(prev => [...prev, {
-          type: 'bot',
-          text: data.response,
-          model: data.model
-        }]);
+        setMessages((prev) => [
+          ...prev,
+          {
+            type: "bot",
+            text: data.response,
+            model: data.model,
+          },
+        ]);
       } else {
-        setMessages(prev => [...prev, {
-          type: 'error',
-          text: data.error || "Failed to get response"
-        }]);
+        setMessages((prev) => [
+          ...prev,
+          {
+            type: "error",
+            text: data.error || "Failed to get response",
+          },
+        ]);
       }
     } catch (error) {
       console.error("Chat error:", error);
-      setMessages(prev => [...prev, {
-        type: 'error',
-        text: "Network error: Unable to connect to chatbot"
-      }]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          type: "error",
+          text: "Network error: Unable to connect to chatbot",
+        },
+      ]);
     }
 
     setChatLoading(false);
   };
 
   const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
     }
@@ -79,18 +88,28 @@ function Chatbot() {
       {/* floating chat button */}
       <button
         onClick={() => setShowChatbot(!showChatbot)}
-        className="fixed bottom-6 right-6 z-50 rounded-full bg-green-600 p-4 text-white shadow-lg hover:bg-green-700 transition-colors"
+        className="fixed bottom-6 right-6 z-50 rounded-full bg-green-600 p-4 text-white shadow-lg transition-colors hover:bg-green-700"
       >
-        <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+        <svg
+          className="h-6 w-6"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+          />
         </svg>
       </button>
 
       {/* chat window */}
       {showChatbot && (
-        <div className="fixed bottom-24 right-6 z-50 w-96 max-w-[calc(100vw-2rem)] h-96 bg-white rounded-lg shadow-xl border border-gray-200 flex flex-col">
+        <div className="fixed bottom-24 right-6 z-50 flex h-96 w-96 max-w-[calc(100vw-2rem)] flex-col rounded-lg border border-gray-200 bg-white shadow-xl">
           {/* chat header */}
-          <div className="bg-green-600 text-white p-4 rounded-t-lg flex justify-between items-center">
+          <div className="flex items-center justify-between rounded-t-lg bg-green-600 p-4 text-white">
             <div>
               <h3 className="font-semibold">Finance Assistant</h3>
             </div>
@@ -98,42 +117,65 @@ function Chatbot() {
               onClick={() => setShowChatbot(false)}
               className="text-white hover:text-gray-200"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
 
           {/* chat messages */}
-          <div className="flex-1 p-4 overflow-y-auto space-y-3">
+          <div className="flex-1 space-y-3 overflow-y-auto p-4">
             {messages.length === 0 && (
-              <div className="text-center text-gray-500 text-sm">
+              <div className="text-center text-sm text-gray-500">
                 Ask me anything about your finances!
               </div>
             )}
             {messages.map((message, index) => (
-              <div key={index} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[80%] p-3 rounded-lg ${
-                  message.type === 'user'
-                    ? 'bg-green-600 text-white'
-                    : message.type === 'error'
-                    ? 'bg-red-100 text-red-800'
-                    : 'bg-gray-100 text-gray-800'
-                }`}>
-                  <p className="text-sm whitespace-pre-wrap">{message.text}</p>
+              <div
+                key={index}
+                className={`flex ${message.type === "user" ? "justify-end" : "justify-start"}`}
+              >
+                <div
+                  className={`max-w-[80%] rounded-lg p-3 ${
+                    message.type === "user"
+                      ? "bg-green-600 text-white"
+                      : message.type === "error"
+                        ? "bg-red-100 text-red-800"
+                        : "bg-gray-100 text-gray-800"
+                  }`}
+                >
+                  <p className="whitespace-pre-wrap text-sm">{message.text}</p>
                   {message.model && (
-                    <p className="text-xs opacity-70 mt-1">Model: {message.model}</p>
+                    <p className="mt-1 text-xs opacity-70">
+                      Model: {message.model}
+                    </p>
                   )}
                 </div>
               </div>
             ))}
             {chatLoading && (
               <div className="flex justify-start">
-                <div className="bg-gray-100 text-gray-800 p-3 rounded-lg">
+                <div className="rounded-lg bg-gray-100 p-3 text-gray-800">
                   <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                    <div className="h-2 w-2 animate-bounce rounded-full bg-gray-400"></div>
+                    <div
+                      className="h-2 w-2 animate-bounce rounded-full bg-gray-400"
+                      style={{ animationDelay: "0.1s" }}
+                    ></div>
+                    <div
+                      className="h-2 w-2 animate-bounce rounded-full bg-gray-400"
+                      style={{ animationDelay: "0.2s" }}
+                    ></div>
                   </div>
                 </div>
               </div>
@@ -141,7 +183,7 @@ function Chatbot() {
           </div>
 
           {/* chat Input */}
-          <div className="p-4 border-t border-gray-200">
+          <div className="border-t border-gray-200 p-4">
             <div className="flex space-x-2">
               <input
                 type="text"
@@ -149,16 +191,26 @@ function Chatbot() {
                 onChange={(e) => setCurrentMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Ask me about your finances..."
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className="flex-1 rounded-md border border-gray-300 px-3 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-green-500"
                 disabled={chatLoading}
               />
               <button
                 onClick={sendMessage}
                 disabled={chatLoading || !currentMessage.trim()}
-                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="rounded-md bg-green-600 px-4 py-2 text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                  />
                 </svg>
               </button>
             </div>
@@ -168,9 +220,6 @@ function Chatbot() {
     </>
   );
 }
-
-
-
 
 export default function Dashboard() {
   const [monthlyIncome, setMonthlyIncome] = useState(0);
@@ -183,39 +232,45 @@ export default function Dashboard() {
   const [error, setError] = useState(null);
 
   // memoize category colors to prevent re-creation
-  const categoryColors = useMemo(() => ({
-    housing: "#3B82F6",
-    utilities: "#8B5CF6",
-    entertainment: "#EC4899",
-    insurance: "#EF4444",
-    food: "#10B981",
-    transportation: "#F59E0B",
-    healthcare: "#06B6D4",
-    other: "#6B7280",
-  }), []);
+  const categoryColors = useMemo(
+    () => ({
+      housing: "#3B82F6",
+      utilities: "#8B5CF6",
+      entertainment: "#EC4899",
+      insurance: "#EF4444",
+      food: "#10B981",
+      transportation: "#F59E0B",
+      healthcare: "#06B6D4",
+      other: "#6B7280",
+    }),
+    [],
+  );
 
-  const processSpendingData = useCallback((spending) => {
-    const categories = {};
-    let total = 0;
+  const processSpendingData = useCallback(
+    (spending) => {
+      const categories = {};
+      let total = 0;
 
-    Object.values(spending).forEach((transaction) => {
-      const category = transaction.category || "other";
-      const amount = parseFloat(transaction.amount) || 0;
+      Object.values(spending).forEach((transaction) => {
+        const category = transaction.category || "other";
+        const amount = parseFloat(transaction.amount) || 0;
 
-      categories[category] = (categories[category] || 0) + amount;
-      total += amount;
-    });
+        categories[category] = (categories[category] || 0) + amount;
+        total += amount;
+      });
 
-    const chartData = Object.entries(categories).map(([name, value]) => ({
-      name,
-      value: parseFloat(value.toFixed(2)),
-      percentage: Math.round((value / total) * 100),
-      color: categoryColors[name] || categoryColors.other,
-    }));
+      const chartData = Object.entries(categories).map(([name, value]) => ({
+        name,
+        value: parseFloat(value.toFixed(2)),
+        percentage: Math.round((value / total) * 100),
+        color: categoryColors[name] || categoryColors.other,
+      }));
 
-    setCategoryData(chartData);
-    setTotalSpent(parseFloat(total.toFixed(2)));
-  }, [categoryColors]);
+      setCategoryData(chartData);
+      setTotalSpent(parseFloat(total.toFixed(2)));
+    },
+    [categoryColors],
+  );
 
   const processBudgetData = useCallback((budgets, spending) => {
     const spendingByCategory = {};
@@ -348,7 +403,9 @@ export default function Dashboard() {
         <div className="mx-auto max-w-7xl">
           {/* Header */}
           <div className="mb-8 flex flex-col items-center">
-            <h1 className="mb-4 text-3xl font-bold text-green-600">Dashboard</h1>
+            <h1 className="mb-4 text-3xl font-bold text-green-600">
+              Dashboard
+            </h1>
             <p className="mb-6 text-gray-700">
               Welcome to Obfin: Finance Manager & Advisor
             </p>
@@ -363,7 +420,9 @@ export default function Dashboard() {
           {/* Summary Cards */}
           <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
             <div className="rounded-lg bg-white p-6 shadow-sm">
-              <p className="mb-2 text-sm text-gray-600">Total Spent This Month</p>
+              <p className="mb-2 text-sm text-gray-600">
+                Total Spent This Month
+              </p>
               <p className="text-3xl font-bold text-gray-900">
                 ${totalSpent.toFixed(2)}
               </p>
