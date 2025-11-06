@@ -5,6 +5,7 @@ import admin from "firebase-admin";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { GoogleGenAI } from "@google/genai";
 
 //-------setup environment-------
 dotenv.config();
@@ -49,6 +50,9 @@ admin.initializeApp({
 
 console.log("Firebase Admin initialized successfully");
 
+// initialize Google AI (will use GEMINI_API_KEY from environment)
+const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
 //------------ROUTES-----------------
 //--------Test Firestore connection---------
 app.get("/api/test", async (req, res) => {
@@ -63,6 +67,48 @@ app.get("/api/test", async (req, res) => {
   } catch (error) {
     console.error("Firebase connection error:", error);
     res.status(500).json({ error: "Firebase connection failed" });
+  }
+});
+
+//--------Google Gemini chat endpoint---------
+// express js post route
+app.post("/api/gemini/chat", async (request, response) => {
+  try {
+    // destructure hashmap
+    const { message } = request.body;
+
+    // pre-request handling
+    if (!message) {
+      return response
+        .status(400)
+        .json({ error: "400 Bad Request: Message is required" });
+    }
+
+    // TODO: edit the message to have user financial data and current news context
+
+    // generate response using given message
+    const result = await genAI.models.generateContent({
+      // async await call to prevent blocking
+      model: "gemini-2.5-flash",
+      contents: [{ parts: [{ text: message }] }],
+    });
+
+    console.log("Google Gemini API Response:", JSON.stringify(result, null, 2));
+
+    // check every lookup for null / undefined, if former, then return right of ||
+    const text =
+      result.candidates?.[0]?.content?.parts?.[0]?.text || "NO_RESPONSE_FOUND";
+
+    response.json({
+      status: "success",
+      response: text,
+      model: "gemini-2.5-flash",
+    });
+  } catch (error) {
+    console.error("Google Gemini API error:", error);
+    response
+      .status(500)
+      .json({ error: "500: Failed to get response from Gemini" });
   }
 });
 
