@@ -1,6 +1,6 @@
 import { signOut } from "firebase/auth";
 import { auth } from "../firebase/firebase";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   PieChart,
   Pie,
@@ -18,6 +18,160 @@ import {
 } from "recharts";
 import { getFirestore, doc, onSnapshot } from "firebase/firestore";
 
+// separate chat box component to prevent re-renders to charts
+function Chatbot() {
+  const [messages, setMessages] = useState([]);
+  const [currentMessage, setCurrentMessage] = useState("");
+  const [chatLoading, setChatLoading] = useState(false);
+  const [showChatbot, setShowChatbot] = useState(false);
+
+  const sendMessage = async () => {
+    if (!currentMessage.trim()) return;
+
+    const userMessage = currentMessage.trim();
+    setCurrentMessage("");
+    setMessages(prev => [...prev, { type: 'user', text: userMessage }]);
+    setChatLoading(true);
+
+    try {
+      const response = await fetch("http://localhost:5001/api/gemini/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ message: userMessage }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setMessages(prev => [...prev, {
+          type: 'bot',
+          text: data.response,
+          model: data.model
+        }]);
+      } else {
+        setMessages(prev => [...prev, {
+          type: 'error',
+          text: data.error || "Failed to get response"
+        }]);
+      }
+    } catch (error) {
+      console.error("Chat error:", error);
+      setMessages(prev => [...prev, {
+        type: 'error',
+        text: "Network error: Unable to connect to chatbot"
+      }]);
+    }
+
+    setChatLoading(false);
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
+
+  return (
+    <>
+      {/* floating chat button */}
+      <button
+        onClick={() => setShowChatbot(!showChatbot)}
+        className="fixed bottom-6 right-6 z-50 rounded-full bg-green-600 p-4 text-white shadow-lg hover:bg-green-700 transition-colors"
+      >
+        <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+        </svg>
+      </button>
+
+      {/* chat window */}
+      {showChatbot && (
+        <div className="fixed bottom-24 right-6 z-50 w-96 max-w-[calc(100vw-2rem)] h-96 bg-white rounded-lg shadow-xl border border-gray-200 flex flex-col">
+          {/* chat header */}
+          <div className="bg-green-600 text-white p-4 rounded-t-lg flex justify-between items-center">
+            <div>
+              <h3 className="font-semibold">Finance Assistant</h3>
+            </div>
+            <button
+              onClick={() => setShowChatbot(false)}
+              className="text-white hover:text-gray-200"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          {/* chat messages */}
+          <div className="flex-1 p-4 overflow-y-auto space-y-3">
+            {messages.length === 0 && (
+              <div className="text-center text-gray-500 text-sm">
+                Ask me anything about your finances!
+              </div>
+            )}
+            {messages.map((message, index) => (
+              <div key={index} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[80%] p-3 rounded-lg ${
+                  message.type === 'user'
+                    ? 'bg-green-600 text-white'
+                    : message.type === 'error'
+                    ? 'bg-red-100 text-red-800'
+                    : 'bg-gray-100 text-gray-800'
+                }`}>
+                  <p className="text-sm whitespace-pre-wrap">{message.text}</p>
+                  {message.model && (
+                    <p className="text-xs opacity-70 mt-1">Model: {message.model}</p>
+                  )}
+                </div>
+              </div>
+            ))}
+            {chatLoading && (
+              <div className="flex justify-start">
+                <div className="bg-gray-100 text-gray-800 p-3 rounded-lg">
+                  <div className="flex space-x-1">
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* chat Input */}
+          <div className="p-4 border-t border-gray-200">
+            <div className="flex space-x-2">
+              <input
+                type="text"
+                value={currentMessage}
+                onChange={(e) => setCurrentMessage(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Ask me about your finances..."
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                disabled={chatLoading}
+              />
+              <button
+                onClick={sendMessage}
+                disabled={chatLoading || !currentMessage.trim()}
+                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+
+
+
 export default function Dashboard() {
   const [monthlyIncome, setMonthlyIncome] = useState(0);
   const [totalSpent, setTotalSpent] = useState(0);
@@ -28,18 +182,20 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // memoize category colors to prevent re-creation
+  const categoryColors = useMemo(() => ({
+    housing: "#3B82F6",
+    utilities: "#8B5CF6",
+    entertainment: "#EC4899",
+    insurance: "#EF4444",
+    food: "#10B981",
+    transportation: "#F59E0B",
+    healthcare: "#06B6D4",
+    other: "#6B7280",
+  }), []);
+
   const processSpendingData = useCallback((spending) => {
     const categories = {};
-    const categoryColors = {
-      housing: "#3B82F6",
-      utilities: "#8B5CF6",
-      entertainment: "#EC4899",
-      insurance: "#EF4444",
-      food: "#10B981",
-      transportation: "#F59E0B",
-      healthcare: "#06B6D4",
-      other: "#6B7280",
-    };
     let total = 0;
 
     Object.values(spending).forEach((transaction) => {
@@ -59,9 +215,9 @@ export default function Dashboard() {
 
     setCategoryData(chartData);
     setTotalSpent(parseFloat(total.toFixed(2)));
-  }, []);
+  }, [categoryColors]);
 
-  const processBudgetData = (budgets, spending) => {
+  const processBudgetData = useCallback((budgets, spending) => {
     const spendingByCategory = {};
 
     if (spending) {
@@ -82,9 +238,9 @@ export default function Dashboard() {
     );
 
     setBudgetData(chartData);
-  };
+  }, []);
 
-  const processTrendData = (trends) => {
+  const processTrendData = useCallback((trends) => {
     const chartData = Object.entries(trends)
       .map(([month, amount]) => ({
         month,
@@ -94,7 +250,7 @@ export default function Dashboard() {
       .slice(-5); // Last x months
 
     setTrendData(chartData);
-  };
+  }, []);
 
   useEffect(() => {
     const db = getFirestore();
@@ -147,7 +303,7 @@ export default function Dashboard() {
       },
     );
     return () => unsubscribe();
-  }, [processSpendingData]);
+  }, [processSpendingData, processBudgetData, processTrendData]);
 
   const handleSignOut = async () => {
     try {
@@ -187,137 +343,142 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-green-50 p-6">
-      <div className="mx-auto max-w-7xl">
-        {/* Header */}
-        <div className="mb-8 flex flex-col items-center">
-          <h1 className="mb-4 text-3xl font-bold text-green-600">Dashboard</h1>
-          <p className="mb-6 text-gray-700">
-            Welcome to Obfin: Finance Manager & Advisor
-          </p>
-          <button
-            onClick={handleSignOut}
-            className="rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700"
-          >
-            Sign Out
-          </button>
-        </div>
-
-        {/* Summary Cards */}
-        <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
-          <div className="rounded-lg bg-white p-6 shadow-sm">
-            <p className="mb-2 text-sm text-gray-600">Total Spent This Month</p>
-            <p className="text-3xl font-bold text-gray-900">
-              ${totalSpent.toFixed(2)}
+    <>
+      <div className="min-h-screen bg-green-50 p-6">
+        <div className="mx-auto max-w-7xl">
+          {/* Header */}
+          <div className="mb-8 flex flex-col items-center">
+            <h1 className="mb-4 text-3xl font-bold text-green-600">Dashboard</h1>
+            <p className="mb-6 text-gray-700">
+              Welcome to Obfin: Finance Manager & Advisor
             </p>
-          </div>
-          <div className="rounded-lg bg-white p-6 shadow-sm">
-            <p className="mb-2 text-sm text-gray-600">Monthly Income</p>
-            <p className="text-3xl font-bold text-gray-900">
-              ${monthlyIncome.toFixed(2)}
-            </p>
-          </div>
-          <div className="rounded-lg bg-white p-6 shadow-sm">
-            <p className="mb-2 text-sm text-gray-600">
-              Savings (Goal: ${savingsGoal})
-            </p>
-            <p
-              className={`text-3xl font-bold ${monthlyIncome - totalSpent < 0 ? "text-red-600" : "text-green-600"}`}
+            <button
+              onClick={handleSignOut}
+              className="rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700"
             >
-              ${(monthlyIncome - totalSpent).toFixed(2)}
-            </p>
-          </div>
-        </div>
-
-        {/* Charts Row */}
-        <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
-          {/* Spending by Category */}
-          <div className="rounded-lg bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-lg font-semibold text-gray-800">
-              Spending by Category
-            </h2>
-            {categoryData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={categoryData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={renderCustomLabel}
-                    outerRadius={100}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {categoryData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => `$${value}`} />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex h-64 items-center justify-center text-gray-500">
-                No spending data available
-              </div>
-            )}
+              Sign Out
+            </button>
           </div>
 
-          {/* Budget vs Actual */}
+          {/* Summary Cards */}
+          <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
+            <div className="rounded-lg bg-white p-6 shadow-sm">
+              <p className="mb-2 text-sm text-gray-600">Total Spent This Month</p>
+              <p className="text-3xl font-bold text-gray-900">
+                ${totalSpent.toFixed(2)}
+              </p>
+            </div>
+            <div className="rounded-lg bg-white p-6 shadow-sm">
+              <p className="mb-2 text-sm text-gray-600">Monthly Income</p>
+              <p className="text-3xl font-bold text-gray-900">
+                ${monthlyIncome.toFixed(2)}
+              </p>
+            </div>
+            <div className="rounded-lg bg-white p-6 shadow-sm">
+              <p className="mb-2 text-sm text-gray-600">
+                Savings (Goal: ${savingsGoal})
+              </p>
+              <p
+                className={`text-3xl font-bold ${monthlyIncome - totalSpent < 0 ? "text-red-600" : "text-green-600"}`}
+              >
+                ${(monthlyIncome - totalSpent).toFixed(2)}
+              </p>
+            </div>
+          </div>
+
+          {/* Charts Row */}
+          <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
+            {/* Spending by Category */}
+            <div className="rounded-lg bg-white p-6 shadow-sm">
+              <h2 className="mb-4 text-lg font-semibold text-gray-800">
+                Spending by Category
+              </h2>
+              {categoryData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={categoryData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={renderCustomLabel}
+                      outerRadius={100}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {categoryData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value) => `$${value}`} />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex h-64 items-center justify-center text-gray-500">
+                  No spending data available
+                </div>
+              )}
+            </div>
+
+            {/* Budget vs Actual */}
+            <div className="rounded-lg bg-white p-6 shadow-sm">
+              <h2 className="mb-4 text-lg font-semibold text-gray-800">
+                Budget vs Actual Spending
+              </h2>
+              {budgetData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={budgetData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="category" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="actual" fill="#3B82F6" name="Actual" />
+                    <Bar dataKey="budget" fill="#9CA3AF" name="Budget" />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex h-64 items-center justify-center text-gray-500">
+                  No budget data available
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Spending Trend */}
           <div className="rounded-lg bg-white p-6 shadow-sm">
             <h2 className="mb-4 text-lg font-semibold text-gray-800">
-              Budget vs Actual Spending
+              Spending Trend (Last 5 Months)
             </h2>
-            {budgetData.length > 0 ? (
+            {trendData.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={budgetData}>
+                <LineChart data={trendData}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="category" />
+                  <XAxis dataKey="month" />
                   <YAxis />
                   <Tooltip />
                   <Legend />
-                  <Bar dataKey="actual" fill="#3B82F6" name="Actual" />
-                  <Bar dataKey="budget" fill="#9CA3AF" name="Budget" />
-                </BarChart>
+                  <Line
+                    type="monotone"
+                    dataKey="spending"
+                    stroke="#3B82F6"
+                    strokeWidth={2}
+                    dot={{ fill: "#3B82F6", r: 4 }}
+                    name="spending"
+                  />
+                </LineChart>
               </ResponsiveContainer>
             ) : (
               <div className="flex h-64 items-center justify-center text-gray-500">
-                No budget data available
+                No trend data available
               </div>
             )}
           </div>
         </div>
-
-        {/* Spending Trend */}
-        <div className="rounded-lg bg-white p-6 shadow-sm">
-          <h2 className="mb-4 text-lg font-semibold text-gray-800">
-            Spending Trend (Last 5 Months)
-          </h2>
-          {trendData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={trendData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="spending"
-                  stroke="#3B82F6"
-                  strokeWidth={2}
-                  dot={{ fill: "#3B82F6", r: 4 }}
-                  name="spending"
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="flex h-64 items-center justify-center text-gray-500">
-              No trend data available
-            </div>
-          )}
-        </div>
       </div>
-    </div>
+
+      {/* Include the separate Chatbot component */}
+      <Chatbot />
+    </>
   );
 }
