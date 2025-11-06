@@ -1,5 +1,5 @@
-node_modules
+.DS_Store
 .env
 .env.local
 config/serviceAccountKey.json
-.DS_Store
+node_modules
