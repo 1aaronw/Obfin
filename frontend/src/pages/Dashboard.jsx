@@ -536,7 +536,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Include the separate Chatbot component */}
+      {/* include completely separate chatbot component */}
       <Chatbot />
     </>
   );
