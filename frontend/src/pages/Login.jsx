@@ -1,5 +1,6 @@
 import { signInWithPopup } from "firebase/auth";
-import { auth, googleProvider } from "../firebase/firebase";
+import { auth, googleProvider, db } from "../firebase/firebase";
+import { doc, getDoc } from "firebase/firestore";
 import { useState } from "react";
 
 export default function Login() {
@@ -13,14 +14,25 @@ export default function Login() {
     try {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
-
       console.log("User signed in:", user);
-      window.location.href = "/dashboard";
+      checkUserInFirestore(user.uid);
     } catch (error) {
       console.error("Error signing in:", error);
       setError(error.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const checkUserInFirestore = async (uid) => {
+    const userRef = doc(db, "users", uid);
+    const userRecord = await getDoc(userRef);
+    if (userRecord.exists()) {
+      console.log("Returned User");
+      window.location.href = "/dashboard";
+    } else {
+      console.log("New User");
+      window.location.href = "/firsttimeuser";
     }
   };
 
