@@ -1,3 +1,4 @@
+import { GoogleGenAI } from "@google/genai";
 import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
@@ -5,10 +6,10 @@ import admin from "firebase-admin";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { GoogleGenAI } from "@google/genai";
 
 //-------setup environment-------
 dotenv.config();
+console.log("Current mode:", process.env.NODE_ENV); //to check the mode development or deployed
 
 //Express app initialization------
 const app = express();
@@ -120,6 +121,21 @@ app.get("/health", (req, res) => {
 app.get("/api/version", (req, res) => {
   res.json({ api: "v1", env: process.env.NODE_ENV || "development" });
 });
+
+// Test route for frontend-backend communication
+//this route will only exist in development mode and when we deploy it it would be removed automatically
+// ---------------- Dev-only test route ----------------
+// this route exists ONLY during local development for quick connection checks.
+if (process.env.NODE_ENV === "development") {
+  app.get("/api/testUser", (req, res) => {
+    res.json({
+      success: true,
+      message: "Frontend and backend are connected! (dev mode)",
+      timestamp: new Date().toISOString(),
+      sampleUser: { name: "Poojan Shah", project: "Obfin" },
+    });
+  });
+}
 
 // 404 handler (for unknown routes)
 app.use((req, res) => {
