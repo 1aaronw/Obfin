@@ -3,26 +3,17 @@ import { useState } from "react";
 export default function IncomeSection({ onIncomeChange }) {
   const [income, setIncome] = useState({
     monthly_income: "",
-    state_change: "",
-    monthly_goal: "",
+    state: "",
+    savingsGoal: "",
   });
   //function is called when the user types in any input
   const handleChange = (e) => {
     const { id, value } = e.target; //spacific <input> element that triggered the event
     //regex expression. must start with a digit
-    if (value == "" || (/^\d+$/.test(value) && Number(value) >= 0)) {
-      const updated = { ...income, [id]: value }; //creates a new object that copies the exisiting budget state but updates the only the field that changed
-      //update the component Budget with the new object
-      setIncome(updated);
-      onIncomeChange(updated); // makes the changes propagate upwards
-    }
-  };
-  //handles strings
-  const handleSelectChange = (e) => {
-    const { value } = e.target;
-    const updated = { ...income, currency_change: value };
+    const updated = { ...income, [id]: value }; //creates a new object that copies the exisiting budget state but updates the only the field that changed
+    //update the component Budget with the new object
     setIncome(updated);
-    onIncomeChange(updated);
+    onIncomeChange(updated); // makes the changes propagate upwards
   };
   return (
     <section className="mb-6 rounded-lg border p-6">
@@ -43,8 +34,9 @@ export default function IncomeSection({ onIncomeChange }) {
           className="w-full rounded-md border border-gray-300 p-2"
         />
         <select
-          value={income.currency_change}
-          onChange={handleSelectChange}
+          id="state"
+          value={income.state}
+          onChange={handleChange}
           className="w-full rounded-md border border-gray-300 p-2"
         >
           <option value="" disabled hidden>
@@ -56,9 +48,10 @@ export default function IncomeSection({ onIncomeChange }) {
       </div>
 
       <input
-        id="monthly_goal"
+        type="number"
+        id="savingsGoal"
         placeholder="Monthly Savings Goal"
-        value={income.monthly_goal}
+        value={income.savingsGoal}
         onChange={handleChange}
         className="w-full rounded-md border border-gray-300 p-2"
       />
