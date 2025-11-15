@@ -709,13 +709,11 @@ export default function Dashboard() {
             </button>
           </div>
           {/* News Segment*/}
-          {/* IMPORTANT: UNCOMMENT OUT FOR DEMO
 
           <div className="mb-8">
             <News />
           </div>
-          
-          */}
+
           {/* Summary Cards */}
           <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
             <div className="rounded-lg bg-white p-6 shadow-sm">
