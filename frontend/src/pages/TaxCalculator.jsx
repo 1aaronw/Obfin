@@ -1,4 +1,6 @@
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { useState } from "react";
+import { auth, db } from "../firebase/firebase";
 
 export default function TaxCalculator() {
   const [income, setIncome] = useState("");
@@ -6,10 +8,13 @@ export default function TaxCalculator() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saveMsg, setSaveMsg] = useState("");
 
   const calculateTax = async () => {
     setLoading(true);
     setErrorMsg("");
+    setSaveMsg("");
     setResult(null);
 
     try {
@@ -31,6 +36,38 @@ export default function TaxCalculator() {
     } finally {
       setLoading(false);
     }
+  };
+  const saveToFirestore = async () => {
+    if (!auth.currentUser) {
+      setSaveMsg("Please login first to save tax history.");
+      return;
+    }
+    if (!result) return;
+
+    setSaving(true);
+    setSaveMsg("");
+
+    try {
+      const ref = collection(db, "users", auth.currentUser.uid, "taxCalculations");
+
+      await addDoc(ref, {
+        income: Number(income),
+        state,
+        federalTax: result.federalTax,
+        stateTax: result.stateTax,
+        totalTax: result.totalTax,
+        netIncome: result.netIncome,
+        effectiveRate: result.effectiveRate,
+        createdAt: serverTimestamp(),
+      });
+
+      setSaveMsg("Tax calculation saved to your profile!");
+    } catch (err) {
+      console.error(err);
+      setSaveMsg("Failed to save tax data.");
+    }
+
+    setSaving(false);
   };
 
   return (
@@ -90,6 +127,17 @@ export default function TaxCalculator() {
             <p><strong>Total Tax:</strong> ${result.totalTax}</p>
             <p><strong>Net Income:</strong> ${result.netIncome}</p>
             <p><strong>Effective Rate:</strong> {result.effectiveRate}%</p>
+            <button
+              onClick={saveToFirestore}
+              disabled={saving}
+              className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded font-semibold"
+            >
+              {saving ? "Saving..." : "Save to Profile"}
+            </button>
+
+            {saveMsg && (
+              <p className="text-center mt-2 text-sm text-gray-700">{saveMsg}</p>
+            )}
           </div>
         )}
       </div>
