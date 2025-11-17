@@ -7,12 +7,12 @@ export default function AIAdvisor() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const recommendedPrompts = [
-  "What did I spend most on this month?",
-  "Am I overspending in Food?",
-  "Summarize my last 30 days spending",
-  "What was my income last year?",
-  "How can I save more money?",
-];
+    "What did I spend most on this month?",
+    "Am I overspending in Food?",
+    "Summarize my last 30 days spending",
+    "What was my income last year?",
+    "How can I save more money?",
+  ];
 
   const bottomRef = useRef(null);
 
@@ -31,10 +31,7 @@ export default function AIAdvisor() {
     setInput("");
 
     // 1) Add user message bubble
-    setMessages((prev) => [
-      ...prev,
-      { sender: "user", text: userMessage },
-    ]);
+    setMessages((prev) => [...prev, { sender: "user", text: userMessage }]);
 
     try {
       const user = auth.currentUser;
@@ -61,13 +58,10 @@ export default function AIAdvisor() {
       const fullText = data.response || "";
 
       // 2) Add empty AI bubble that we'll "type" into
-      setMessages((prev) => [
-        ...prev,
-        { sender: "ai", text: "" },
-      ]);
+      setMessages((prev) => [...prev, { sender: "ai", text: "" }]);
 
       // 3) Fake streaming: gradually reveal the text
-      const CHUNK_SIZE = 6;   // characters per step
+      const CHUNK_SIZE = 6; // characters per step
       const INTERVAL_MS = 25; // delay between steps
 
       let index = 0;
@@ -99,18 +93,18 @@ export default function AIAdvisor() {
   };
 
   return (
-    <div className="p-8 max-w-3xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">AI Financial Advisor</h1>
+    <div className="mx-auto max-w-3xl p-8">
+      <h1 className="mb-6 text-3xl font-bold">AI Financial Advisor</h1>
 
       {/* Chat window */}
-      <div className="border rounded p-4 h-[400px] overflow-y-auto bg-white shadow-sm">
+      <div className="h-[400px] overflow-y-auto rounded border bg-white p-4 shadow-sm">
         {messages.map((msg, idx) => (
           <div
             key={idx}
-            className={`mb-3 p-3 rounded max-w-[75%] whitespace-pre-line ${
+            className={`mb-3 max-w-[75%] whitespace-pre-line rounded p-3 ${
               msg.sender === "user"
-                ? "bg-blue-600 text-white ml-auto"
-                : "bg-gray-200 text-black mr-auto"
+                ? "ml-auto bg-blue-600 text-white"
+                : "mr-auto bg-gray-200 text-black"
             }`}
           >
             {msg.text}
@@ -118,7 +112,7 @@ export default function AIAdvisor() {
         ))}
 
         {loading && (
-          <div className="mr-auto bg-gray-200 text-black p-3 rounded">
+          <div className="mr-auto rounded bg-gray-200 p-3 text-black">
             Thinking…
           </div>
         )}
@@ -126,32 +120,30 @@ export default function AIAdvisor() {
         <div ref={bottomRef} />
       </div>
 
-      {errorMsg && (
-        <p className="text-red-600 mt-4">{errorMsg}</p>
-      )}
+      {errorMsg && <p className="mt-4 text-red-600">{errorMsg}</p>}
 
       {/* Recommended Prompts */}
       <div className="mt-4">
-        <h3 className="font-semibold mb-2">Try asking:</h3>
+        <h3 className="mb-2 font-semibold">Try asking:</h3>
         <div className="flex flex-wrap gap-2">
-        {recommendedPrompts.map((p, idx) => (
-          <button
-            key={idx}
-            onClick={() => {
-              setInput(p);
-            }}
-            className="bg-gray-200 hover:bg-gray-300 text-black px-3 py-1 rounded"
-          >
-            {p}
-          </button>
-        ))}
+          {recommendedPrompts.map((p, idx) => (
+            <button
+              key={idx}
+              onClick={() => {
+                setInput(p);
+              }}
+              className="rounded bg-gray-200 px-3 py-1 text-black hover:bg-gray-300"
+            >
+              {p}
+            </button>
+          ))}
         </div>
       </div>
 
       {/* Input */}
       <div className="mt-4 flex">
         <input
-          className="flex-1 border p-3 rounded-l"
+          className="flex-1 rounded-l border p-3"
           placeholder="Ask anything about your finances..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -160,7 +152,7 @@ export default function AIAdvisor() {
         <button
           onClick={sendMessage}
           disabled={loading}
-          className="bg-blue-600 text-white px-4 py-2 rounded-r"
+          className="rounded-r bg-blue-600 px-4 py-2 text-white"
         >
           Send
         </button>

@@ -46,10 +46,7 @@ export default function TransactionsTab() {
   return (
     <div>
       {transactions.map((tx) => (
-        <div
-          key={tx.id}
-          className="p-4 border rounded mb-4 bg-white shadow-sm"
-        >
+        <div key={tx.id} className="mb-4 rounded border bg-white p-4 shadow-sm">
           <p>
             <strong>Date:</strong>{" "}
             {tx.date?.toDate?.().toLocaleString() ?? "N/A"}

@@ -120,7 +120,7 @@ app.post("/api/gemini/chat", async (request, response) => {
                   t.state
                 }, Federal: $${t.federalTax}, StateTax: $${t.stateTax}, Total: $${
                   t.totalTax
-                }, EffectiveRate: ${t.effectiveRate}%`
+                }, EffectiveRate: ${t.effectiveRate}%`,
             )
             .join("\n")
         : "No tax history available.";
@@ -143,7 +143,7 @@ app.post("/api/gemini/chat", async (request, response) => {
     const thirtyDaysAgo = new Date(
       now.getFullYear(),
       now.getMonth(),
-      now.getDate() - 30
+      now.getDate() - 30,
     );
 
     txSnapshot.forEach((doc) => {
@@ -177,7 +177,7 @@ app.post("/api/gemini/chat", async (request, response) => {
               (t, i) =>
                 `${i + 1}. ${t.date} — ${t.type.toUpperCase()} $${t.amount} in ${
                   t.category
-                }${t.description ? ` (${t.description})` : ""}`
+                }${t.description ? ` (${t.description})` : ""}`,
             )
             .join("\n")
         : "No transaction history available.";
@@ -319,16 +319,21 @@ if (process.env.NODE_ENV === "development") {
 //  TAX CALCULATOR ROUTE (2025 REAL DATA, SINGLE ONLY)
 // ========================================================
 
-
 // Resolve __dirname already exists above, so we reuse it
 
 // Load tax JSON files ONCE (cached in memory)
 const federal2025 = JSON.parse(
-  fs.readFileSync(path.join(__dirname, "tax/data/federal_2025.preview.json"), "utf8")
+  fs.readFileSync(
+    path.join(__dirname, "tax/data/federal_2025.preview.json"),
+    "utf8",
+  ),
 );
 
 const states2025 = JSON.parse(
-  fs.readFileSync(path.join(__dirname, "tax/data/states_2025.preview.json"), "utf8")
+  fs.readFileSync(
+    path.join(__dirname, "tax/data/states_2025.preview.json"),
+    "utf8",
+  ),
 );
 
 // -------------------- TAX API --------------------
@@ -347,7 +352,9 @@ app.post("/api/tax/calculate", (req, res) => {
     const stateCfg = states2025[state];
 
     if (!stateCfg) {
-      return res.status(400).json({ error: `State '${state}' not found in 2025 dataset.` });
+      return res
+        .status(400)
+        .json({ error: `State '${state}' not found in 2025 dataset.` });
     }
 
     // SINGLE ONLY — clean future-proof design
@@ -364,7 +371,6 @@ app.post("/api/tax/calculate", (req, res) => {
       state,
       ...result,
     });
-
   } catch (err) {
     console.error("Tax Engine Error:", err);
     res.status(500).json({ error: "Tax calculation failed" });
@@ -390,14 +396,15 @@ app.listen(PORT, () => {
 app.get("/api/tax/history/:uid", async (req, res) => {
   try {
     const uid = req.params.uid;
-    const historyRef = admin.firestore()
+    const historyRef = admin
+      .firestore()
       .collection("users")
       .doc(uid)
       .collection("taxHistory")
       .orderBy("createdAt", "desc");
 
     const snapshot = await historyRef.get();
-    const results = snapshot.docs.map(doc => doc.data());
+    const results = snapshot.docs.map((doc) => doc.data());
 
     res.json(results);
   } catch (error) {
