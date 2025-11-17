@@ -3,6 +3,7 @@ import Layout from "./layout/Layout";
 import Dashboard from "./pages/Dashboard";
 import FirstTimeUser from "./pages/FirstTimeUser";
 import Login from "./pages/Login";
+import TaxCalculator from "./pages/TaxCalculator";
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
         {/* Protected dashboard routes with layout */}
         <Route path="/" element={<Layout />}>
           <Route path="dashboard" element={<Dashboard />} />
+          <Route path="tax-calculator" element={<TaxCalculator />} />
           {/* You’ll add more pages here later */}
         </Route>
       </Routes>
