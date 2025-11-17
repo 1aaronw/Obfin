@@ -263,3 +263,21 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
   console.log(`obfin-backend listening on http://localhost:${PORT}`);
 });
+
+app.get("/api/tax/history/:uid", async (req, res) => {
+  try {
+    const uid = req.params.uid;
+    const historyRef = admin.firestore()
+      .collection("users")
+      .doc(uid)
+      .collection("taxHistory")
+      .orderBy("createdAt", "desc");
+
+    const snapshot = await historyRef.get();
+    const results = snapshot.docs.map(doc => doc.data());
+
+    res.json(results);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch tax history" });
+  }
+});
