@@ -6,6 +6,7 @@ import admin from "firebase-admin";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { computeTax } from "./tax/taxEngine.js";
 
 //-------setup environment-------
 dotenv.config();
@@ -72,42 +73,165 @@ app.get("/api/test", async (req, res) => {
 });
 
 //--------Google Gemini chat endpoint---------
-// express js post route
 app.post("/api/gemini/chat", async (request, response) => {
   try {
-    // destructure hashmap
-    const { message } = request.body;
+    const { message, uid } = request.body;
 
-    // pre-request handling
+    // ===================== VALIDATION =====================
     if (!message) {
-      return response
-        .status(400)
-        .json({ error: "400 Bad Request: Message is required" });
+      return response.status(400).json({ error: "Message is required." });
+    }
+    if (!uid) {
+      return response.status(400).json({ error: "User ID (uid) is required." });
     }
 
-    // TODO: edit the message to have user financial data and current news context
+    const db = admin.firestore();
 
-    // generate response using given message
-    const result = await genAI.models.generateContent({
-      // async await call to prevent blocking
-      model: "gemini-2.5-flash",
-      contents: [{ parts: [{ text: message }] }],
+    // ===================== TAX HISTORY =====================
+    const taxRef = db
+      .collection("users")
+      .doc(uid)
+      .collection("taxCalculations")
+      .orderBy("createdAt", "desc")
+      .limit(10);
+
+    const taxSnapshot = await taxRef.get();
+
+    let taxHistory = [];
+    taxSnapshot.forEach((doc) => {
+      const d = doc.data();
+      taxHistory.push({
+        date: d.createdAt?.toDate?.().toLocaleString() || "N/A",
+        income: d.income,
+        state: d.state,
+        federalTax: d.federalTax,
+        stateTax: d.stateTax,
+        totalTax: d.totalTax,
+        effectiveRate: d.effectiveRate,
+      });
     });
 
-    console.log("Google Gemini API Response:", JSON.stringify(result, null, 2));
+    const taxHistoryString =
+      taxHistory.length > 0
+        ? taxHistory
+            .map(
+              (t, i) =>
+                `${i + 1}. ${t.date} — Income: $${t.income}, State: ${
+                  t.state
+                }, Federal: $${t.federalTax}, StateTax: $${t.stateTax}, Total: $${
+                  t.totalTax
+                }, EffectiveRate: ${t.effectiveRate}%`
+            )
+            .join("\n")
+        : "No tax history available.";
 
-    // check every lookup for null / undefined, if former, then return right of ||
+    // ===================== TRANSACTION HISTORY =====================
+    const txRef = db
+      .collection("users")
+      .doc(uid)
+      .collection("transactions")
+      .orderBy("date", "desc")
+      .limit(20);
+
+    const txSnapshot = await txRef.get();
+
+    let transactions = [];
+    let categoryTotals = {};
+    let last30DaysSpend = 0;
+
+    const now = new Date();
+    const thirtyDaysAgo = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate() - 30
+    );
+
+    txSnapshot.forEach((doc) => {
+      const d = doc.data();
+      const dateObj = d.date?.toDate?.() || d.createdAt?.toDate?.() || null;
+
+      const tx = {
+        date: dateObj ? dateObj.toLocaleString() : "N/A",
+        rawDate: dateObj,
+        amount: Number(d.amount) || 0,
+        category: d.category || "Uncategorized",
+        type: d.type || "expense",
+        description: d.description || "",
+      };
+
+      transactions.push(tx);
+
+      if (tx.type === "expense") {
+        if (tx.rawDate && tx.rawDate >= thirtyDaysAgo) {
+          last30DaysSpend += tx.amount;
+          categoryTotals[tx.category] =
+            (categoryTotals[tx.category] || 0) + tx.amount;
+        }
+      }
+    });
+
+    const transactionsString =
+      transactions.length > 0
+        ? transactions
+            .map(
+              (t, i) =>
+                `${i + 1}. ${t.date} — ${t.type.toUpperCase()} $${t.amount} in ${
+                  t.category
+                }${t.description ? ` (${t.description})` : ""}`
+            )
+            .join("\n")
+        : "No transaction history available.";
+
+    const categorySummaryString =
+      Object.keys(categoryTotals).length > 0
+        ? Object.entries(categoryTotals)
+            .map(([cat, amt]) => `- ${cat}: $${amt.toFixed(2)}`)
+            .join("\n")
+        : "No category breakdown available (no recent expenses).";
+
+    // ===================== GEMINI CONTEXT TEXT =====================
+    const contextText = `
+You are Obfin's AI Financial Advisor.
+
+Use the user's real data below when answering.
+Be specific but concise. If numbers are approximate, say so.
+
+================ TAX HISTORY (latest ${taxHistory.length}) ================
+${taxHistoryString}
+
+================ TRANSACTIONS (latest ${transactions.length}) ================
+${transactionsString}
+
+================ SPENDING SUMMARY (last 30 days) ================
+Total spent (expenses only): $${last30DaysSpend.toFixed(2)}
+By category:
+${categorySummaryString}
+
+================ USER QUESTION ================
+${message}
+    `;
+
+    // ===================== GEMINI REQUEST (JSON) =====================
+    const geminiResponse = await genAI.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: [{ parts: [{ text: contextText }] }],
+    });
+
     const text =
-      result.candidates?.[0]?.content?.parts?.[0]?.text || "NO_RESPONSE_FOUND";
+      geminiResponse?.candidates?.[0]?.content?.parts?.[0]?.text ||
+      "NO_RESPONSE_FOUND";
 
-    response.json({
+    // ===================== SEND RESPONSE =====================
+    return response.json({
       status: "success",
       response: text,
       model: "gemini-2.5-flash",
+      taxHistoryIncluded: taxHistory.length,
+      transactionsIncluded: transactions.length,
     });
   } catch (error) {
     console.error("Google Gemini API error:", error);
-    response
+    return response
       .status(500)
       .json({ error: "500: Failed to get response from Gemini" });
   }
@@ -191,6 +315,62 @@ if (process.env.NODE_ENV === "development") {
   });
 }
 
+// ========================================================
+//  TAX CALCULATOR ROUTE (2025 REAL DATA, SINGLE ONLY)
+// ========================================================
+
+
+// Resolve __dirname already exists above, so we reuse it
+
+// Load tax JSON files ONCE (cached in memory)
+const federal2025 = JSON.parse(
+  fs.readFileSync(path.join(__dirname, "tax/data/federal_2025.preview.json"), "utf8")
+);
+
+const states2025 = JSON.parse(
+  fs.readFileSync(path.join(__dirname, "tax/data/states_2025.preview.json"), "utf8")
+);
+
+// -------------------- TAX API --------------------
+app.post("/api/tax/calculate", (req, res) => {
+  try {
+    const { income, state } = req.body;
+
+    if (!income || isNaN(income)) {
+      return res.status(400).json({ error: "Income must be a valid number." });
+    }
+
+    if (!state) {
+      return res.status(400).json({ error: "State is required." });
+    }
+
+    const stateCfg = states2025[state];
+
+    if (!stateCfg) {
+      return res.status(400).json({ error: `State '${state}' not found in 2025 dataset.` });
+    }
+
+    // SINGLE ONLY — clean future-proof design
+    const result = computeTax({
+      income: Number(income),
+      filingStatus: "single",
+      federal: federal2025,
+      stateCfg,
+    });
+
+    return res.json({
+      success: true,
+      income: Number(income),
+      state,
+      ...result,
+    });
+
+  } catch (err) {
+    console.error("Tax Engine Error:", err);
+    res.status(500).json({ error: "Tax calculation failed" });
+  }
+});
+
 // 404 handler (for unknown routes)
 app.use((req, res) => {
   res.status(404).json({ error: "Not Found" });
@@ -205,4 +385,22 @@ app.use((err, req, res, next) => {
 //------Satrt Server----------
 app.listen(PORT, () => {
   console.log(`obfin-backend listening on http://localhost:${PORT}`);
+});
+
+app.get("/api/tax/history/:uid", async (req, res) => {
+  try {
+    const uid = req.params.uid;
+    const historyRef = admin.firestore()
+      .collection("users")
+      .doc(uid)
+      .collection("taxHistory")
+      .orderBy("createdAt", "desc");
+
+    const snapshot = await historyRef.get();
+    const results = snapshot.docs.map(doc => doc.data());
+
+    res.json(results);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch tax history" });
+  }
 });
