@@ -1,5 +1,6 @@
 import { signOut } from "firebase/auth";
 import { auth } from "../firebase/firebase";
+import { getAuth } from "firebase/auth";
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   PieChart,
@@ -309,12 +310,12 @@ export default function Dashboard() {
 
   useEffect(() => {
     const db = getFirestore();
-
-    // IMPORTANT: Replace the 'testUser' with actual automatic google authentication document id later
+    const auth = getAuth();
+    const user = auth.currentUser;
     const userId = "iEQ13Kho4PfaRWY2n3d8";
+    //const userId = user.uid;
 
-    // IMPORTANT: Replace the 'testUser' with actual collection later
-    const docRef = doc(db, "testUser", userId);
+    const docRef = doc(db, user, userId);
 
     const unsubscribe = onSnapshot(
       docRef,
