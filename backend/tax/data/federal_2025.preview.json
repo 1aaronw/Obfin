@@ -1,0 +1,20 @@
+{
+  "standardDeduction": {
+    "single": 14600,
+    "married_joint": null,
+    "head": null
+  },
+  "brackets": {
+    "single": [
+      { "upTo": 11000, "rate": 0.1 },
+      { "upTo": 44725, "rate": 0.12 },
+      { "upTo": 95375, "rate": 0.22 },
+      { "upTo": 182100, "rate": 0.24 },
+      { "upTo": 231250, "rate": 0.32 },
+      { "upTo": 578125, "rate": 0.35 },
+      { "upTo": null, "rate": 0.37 }
+    ],
+    "married_joint": [],
+    "head": []
+  }
+}

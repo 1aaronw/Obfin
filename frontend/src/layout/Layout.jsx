@@ -36,6 +36,9 @@ export default function Layout() {
           <Link to="/dashboard" className="rounded p-2 hover:bg-gray-700">
             Dashboard
           </Link>
+          <Link to="/tax-calculator" className="rounded p-2 hover:bg-gray-700">
+            Tax Calculator
+          </Link>
           <Link to="/analytics" className="rounded p-2 hover:bg-gray-700">
             Analytics
           </Link>
