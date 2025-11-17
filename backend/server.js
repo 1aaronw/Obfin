@@ -73,7 +73,6 @@ app.get("/api/test", async (req, res) => {
 });
 
 //--------Google Gemini chat endpoint---------
-// express js post route
 app.post("/api/gemini/chat", async (request, response) => {
   try {
     const { message, uid } = request.body;
@@ -127,8 +126,6 @@ app.post("/api/gemini/chat", async (request, response) => {
         : "No tax history available.";
 
     // ===================== TRANSACTION HISTORY =====================
-    // Assumed path: users/{uid}/transactions
-    // Fields expected: amount, category, type("expense"/"income"), description, date, createdAt
     const txRef = db
       .collection("users")
       .doc(uid)
@@ -139,7 +136,7 @@ app.post("/api/gemini/chat", async (request, response) => {
     const txSnapshot = await txRef.get();
 
     let transactions = [];
-    let categoryTotals = {}; // { Food: 120.5, Rent: 600, ... }
+    let categoryTotals = {};
     let last30DaysSpend = 0;
 
     const now = new Date();
@@ -164,7 +161,6 @@ app.post("/api/gemini/chat", async (request, response) => {
 
       transactions.push(tx);
 
-      // Only count expenses for summaries
       if (tx.type === "expense") {
         if (tx.rawDate && tx.rawDate >= thirtyDaysAgo) {
           last30DaysSpend += tx.amount;
@@ -215,14 +211,10 @@ ${categorySummaryString}
 ${message}
     `;
 
-    // ===================== GEMINI REQUEST =====================
+    // ===================== GEMINI REQUEST (JSON) =====================
     const geminiResponse = await genAI.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: [
-        {
-          parts: [{ text: contextText }],
-        },
-      ],
+      contents: [{ parts: [{ text: contextText }] }],
     });
 
     const text =
@@ -230,7 +222,7 @@ ${message}
       "NO_RESPONSE_FOUND";
 
     // ===================== SEND RESPONSE =====================
-    response.json({
+    return response.json({
       status: "success",
       response: text,
       model: "gemini-2.5-flash",
@@ -239,7 +231,7 @@ ${message}
     });
   } catch (error) {
     console.error("Google Gemini API error:", error);
-    response
+    return response
       .status(500)
       .json({ error: "500: Failed to get response from Gemini" });
   }
