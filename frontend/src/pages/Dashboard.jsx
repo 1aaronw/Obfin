@@ -1,4 +1,6 @@
-import { signOut, getAuth } from "firebase/auth";
+import { signOut } from "firebase/auth";
+//import { getAuth} from "firebase/auth";
+
 import { doc, getFirestore, onSnapshot } from "firebase/firestore";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import {
