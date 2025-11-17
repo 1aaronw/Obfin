@@ -1,6 +1,6 @@
-import { signOut } from "firebase/auth";
+import { signOut, getAuth, onAuthStateChanged } from "firebase/auth";
 import { doc, getFirestore, onSnapshot } from "firebase/firestore";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Bar,
   BarChart,
@@ -540,56 +540,66 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
+    //Use commented out code if want to test the "dummy test user"
+    //const TEST_UID = "iEQ13Kho4PfaRWY2n3d8";
     const db = getFirestore();
+    const auth = getAuth();
 
-    // IMPORTANT: Replace the 'testUser' with actual automatic google authentication document id later
-    const userId = "iEQ13Kho4PfaRWY2n3d8";
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        console.log("User is not signed in yet");
+        setLoading(true);
+        return;
+      }
+      console.log("Logged in as:", user.uid);
 
-    // IMPORTANT: Replace the 'testUser' with actual collection later
-    const docRef = doc(db, "testUser", userId);
+      const docRef = doc(db, "users", user.uid);
+      //const docRef = doc(db, "testUser", TEST_UID);
 
-    const unsubscribe = onSnapshot(
-      docRef,
-      (docSnap) => {
-        try {
-          if (docSnap.exists()) {
-            const data = docSnap.data();
+      const unsubscribeDoc = onSnapshot(
+        docRef,
+        (docSnap) => {
+          try {
+            if (docSnap.exists()) {
+              const data = docSnap.data();
 
-            setMonthlyIncome(data.monthlyIncome || 0);
-            setSavingsGoal(data.savingsGoal || 1000);
+              setMonthlyIncome(data.monthlyIncome || 0);
+              setSavingsGoal(data.savingsGoal || 1000);
 
-            if (data.spending) {
-              processSpendingData(data.spending);
+              if (data.spending) {
+                processSpendingData(data.spending);
+              }
+              if (data.budgets) {
+                processBudgetData(data.budgets, data.spending);
+              }
+              if (data.monthlyTrends) {
+                processTrendData(data.monthlyTrends);
+              }
+            } else {
+              console.log("No document found");
+              // Empty data default
+              setCategoryData([]);
+              setBudgetData([]);
+              setTrendData([]);
+              setTotalSpent(0);
             }
-            if (data.budgets) {
-              processBudgetData(data.budgets, data.spending);
-            }
-            if (data.monthlyTrends) {
-              processTrendData(data.monthlyTrends);
-            }
-          } else {
-            console.log("No document found");
-            // Empty data default
-            setCategoryData([]);
-            setBudgetData([]);
-            setTrendData([]);
-            setTotalSpent(0);
+
+            setLoading(false);
+          } catch (err) {
+            console.error("Error processing data:", err);
+            setError("Failed to load data");
+            setLoading(false);
           }
-
+        },
+        (err) => {
+          console.error("Firestore error:", err);
+          setError("Failed to connect to database: " + err.message);
           setLoading(false);
-        } catch (err) {
-          console.error("Error processing data:", err);
-          setError("Failed to load data");
-          setLoading(false);
-        }
-      },
-      (err) => {
-        console.error("Firestore error:", err);
-        setError("Failed to connect to database: " + err.message);
-        setLoading(false);
-      },
-    );
-    return () => unsubscribe();
+        },
+      );
+      return () => unsubscribeDoc();
+    });
+    return () => unsubscribeAuth();
   }, [processSpendingData, processBudgetData, processTrendData]);
 
   //for server status monitoring, keeping it now for testing and debugging purposes and might keep it after development phase ----------do not remove it---------------

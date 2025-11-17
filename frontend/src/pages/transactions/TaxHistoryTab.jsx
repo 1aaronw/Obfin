@@ -43,20 +43,33 @@ export default function TaxHistoryTab() {
 
   if (loading) return <p>Loading tax history…</p>;
 
-  if (!history || history.length === 0)
-    return <p>No tax history yet.</p>;
+  if (!history || history.length === 0) return <p>No tax history yet.</p>;
 
   return (
     <div className="space-y-4">
       {history.map((entry) => (
-        <div key={entry.id} className="p-4 border rounded bg-gray-50">
-          <p><strong>Date:</strong> {entry.createdAt?.toDate().toLocaleString()}</p>
-          <p><strong>Income:</strong> ${entry.income}</p>
-          <p><strong>State:</strong> {entry.state}</p>
-          <p><strong>Federal Tax:</strong> ${entry.federalTax}</p>
-          <p><strong>State Tax:</strong> ${entry.stateTax}</p>
-          <p><strong>Total Tax:</strong> ${entry.totalTax}</p>
-          <p><strong>Effective Rate:</strong> {entry.effectiveRate}%</p>
+        <div key={entry.id} className="rounded border bg-gray-50 p-4">
+          <p>
+            <strong>Date:</strong> {entry.createdAt?.toDate().toLocaleString()}
+          </p>
+          <p>
+            <strong>Income:</strong> ${entry.income}
+          </p>
+          <p>
+            <strong>State:</strong> {entry.state}
+          </p>
+          <p>
+            <strong>Federal Tax:</strong> ${entry.federalTax}
+          </p>
+          <p>
+            <strong>State Tax:</strong> ${entry.stateTax}
+          </p>
+          <p>
+            <strong>Total Tax:</strong> ${entry.totalTax}
+          </p>
+          <p>
+            <strong>Effective Rate:</strong> {entry.effectiveRate}%
+          </p>
         </div>
       ))}
     </div>

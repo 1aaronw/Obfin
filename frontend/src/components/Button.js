@@ -1,9 +1,4 @@
-type BlackButtonProps = {
-  text: string;
-  onClick?: () => void;
-};
-
-export default function BlackButton({ text, onClick }: BlackButtonProps) {
+export default function BlackButton({ text, onClick }) {
   return (
     <button
       onClick={onClick}

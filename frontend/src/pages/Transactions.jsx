@@ -7,10 +7,10 @@ export default function Transactions() {
 
   return (
     <div className="p-6">
-      <h1 className="text-3xl font-bold mb-6">Transactions & History</h1>
+      <h1 className="mb-6 text-3xl font-bold">Transactions & History</h1>
 
       {/* Tabs */}
-      <div className="flex space-x-4 border-b pb-2 mb-6">
+      <div className="mb-6 flex space-x-4 border-b pb-2">
         <button
           onClick={() => setActiveTab("transactions")}
           className={`pb-2 ${
@@ -35,11 +35,7 @@ export default function Transactions() {
       </div>
 
       {/* CONTENT */}
-      {activeTab === "transactions" ? (
-        <TransactionsTab />
-      ) : (
-        <TaxHistoryTab />
-      )}
+      {activeTab === "transactions" ? <TransactionsTab /> : <TaxHistoryTab />}
     </div>
   );
 }
