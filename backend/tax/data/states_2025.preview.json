@@ -1,0 +1,901 @@
+{
+  "AL": {
+    "type": "progressive",
+    "rate": null,
+    "standardDeduction": {
+      "single": 3000,
+      "married_joint": null,
+      "head": null
+    },
+    "brackets": {
+      "single": [
+        { "upTo": 500, "rate": 0.02 },
+        { "upTo": 3000, "rate": 0.04 },
+        { "upTo": null, "rate": 0.05 }
+      ],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "AK": {
+    "type": "none",
+    "rate": 0,
+    "standardDeduction": {
+      "single": 0,
+      "married_joint": null,
+      "head": null
+    },
+    "brackets": {
+      "single": [],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "AZ": {
+    "type": "flat",
+    "rate": 0.028,
+    "standardDeduction": {
+      "single": 13850,
+      "married_joint": null,
+      "head": null
+    },
+    "brackets": {
+      "single": [],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "AR": {
+    "type": "progressive",
+    "rate": null,
+    "standardDeduction": {
+      "single": 2300,
+      "married_joint": null,
+      "head": null
+    },
+    "brackets": {
+      "single": [
+        { "upTo": 4400, "rate": 0.02 },
+        { "upTo": 8800, "rate": 0.04 },
+        { "upTo": null, "rate": 0.049 }
+      ],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "CA": {
+    "type": "progressive",
+    "rate": null,
+    "standardDeduction": {
+      "single": 5202,
+      "married_joint": null,
+      "head": null
+    },
+    "brackets": {
+      "single": [
+        { "upTo": 10412, "rate": 0.01 },
+        { "upTo": 24684, "rate": 0.02 },
+        { "upTo": 38959, "rate": 0.04 },
+        { "upTo": 54081, "rate": 0.06 },
+        { "upTo": 67778, "rate": 0.08 },
+        { "upTo": 343988, "rate": 0.093 },
+        { "upTo": 412994, "rate": 0.103 },
+        { "upTo": 688742, "rate": 0.113 },
+        { "upTo": null, "rate": 0.123 }
+      ],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "CO": {
+    "type": "flat",
+    "rate": 0.044,
+    "standardDeduction": {
+      "single": 0,
+      "married_joint": null,
+      "head": null
+    },
+    "brackets": {
+      "single": [],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "CT": {
+    "type": "progressive",
+    "rate": null,
+    "standardDeduction": {
+      "single": 0,
+      "married_joint": null,
+      "head": null
+    },
+    "brackets": {
+      "single": [
+        { "upTo": 10000, "rate": 0.03 },
+        { "upTo": 50000, "rate": 0.05 },
+        { "upTo": 100000, "rate": 0.055 },
+        { "upTo": 200000, "rate": 0.06 },
+        { "upTo": 250000, "rate": 0.065 },
+        { "upTo": 500000, "rate": 0.069 },
+        { "upTo": null, "rate": 0.0699 }
+      ],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "DE": {
+    "type": "progressive",
+    "rate": null,
+    "standardDeduction": {
+      "single": 3250,
+      "married_joint": null,
+      "head": null
+    },
+    "brackets": {
+      "single": [
+        { "upTo": 2000, "rate": 0.022 },
+        { "upTo": 5000, "rate": 0.039 },
+        { "upTo": 10000, "rate": 0.048 },
+        { "upTo": 20000, "rate": 0.052 },
+        { "upTo": 25000, "rate": 0.0555 },
+        { "upTo": null, "rate": 0.066 }
+      ],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "FL": {
+    "type": "none",
+    "rate": 0,
+    "standardDeduction": {
+      "single": 0,
+      "married_joint": null,
+      "head": null
+    },
+    "brackets": {
+      "single": [],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "GA": {
+    "type": "flat",
+    "rate": 0.0549,
+    "standardDeduction": {
+      "single": 5400,
+      "married_joint": null,
+      "head": null
+    },
+    "brackets": {
+      "single": [],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "HI": {
+    "type": "progressive",
+    "rate": null,
+    "standardDeduction": {
+      "single": 2200,
+      "married_joint": null,
+      "head": null
+    },
+    "brackets": {
+      "single": [
+        { "upTo": 2400, "rate": 0.014 },
+        { "upTo": 4800, "rate": 0.032 },
+        { "upTo": 9600, "rate": 0.055 },
+        { "upTo": 14400, "rate": 0.064 },
+        { "upTo": 19200, "rate": 0.068 },
+        { "upTo": 24000, "rate": 0.072 },
+        { "upTo": 36000, "rate": 0.076 },
+        { "upTo": 48000, "rate": 0.079 },
+        { "upTo": 150000, "rate": 0.0825 },
+        { "upTo": 175000, "rate": 0.09 },
+        { "upTo": 200000, "rate": 0.1 },
+        { "upTo": null, "rate": 0.11 }
+      ],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "ID": {
+    "type": "progressive",
+    "rate": null,
+    "standardDeduction": {
+      "single": 13850,
+      "married_joint": null,
+      "head": null
+    },
+    "brackets": {
+      "single": [
+        { "upTo": 1500, "rate": 0.01 },
+        { "upTo": 3750, "rate": 0.03 },
+        { "upTo": 6750, "rate": 0.045 },
+        { "upTo": null, "rate": 0.059 }
+      ],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "IL": {
+    "type": "flat",
+    "rate": 0.0495,
+    "standardDeduction": {
+      "single": 2680,
+      "married_joint": null,
+      "head": null
+    },
+    "brackets": {
+      "single": [],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "IN": {
+    "type": "flat",
+    "rate": 0.0323,
+    "standardDeduction": {
+      "single": 1000,
+      "married_joint": null,
+      "head": null
+    },
+    "brackets": {
+      "single": [],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "IA": {
+    "type": "progressive",
+    "rate": null,
+    "standardDeduction": { "single": 0, "married_joint": null, "head": null },
+    "brackets": {
+      "single": [
+        { "upTo": 6000, "rate": 0.044 },
+        { "upTo": 30000, "rate": 0.0482 },
+        { "upTo": 75000, "rate": 0.0563 },
+        { "upTo": null, "rate": 0.06 }
+      ],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "KS": {
+    "type": "progressive",
+    "rate": null,
+    "standardDeduction": {
+      "single": 3500,
+      "married_joint": null,
+      "head": null
+    },
+    "brackets": {
+      "single": [
+        { "upTo": 15000, "rate": 0.031 },
+        { "upTo": 30000, "rate": 0.0525 },
+        { "upTo": null, "rate": 0.057 }
+      ],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "KY": {
+    "type": "flat",
+    "rate": 0.045,
+    "standardDeduction": {
+      "single": 3110,
+      "married_joint": null,
+      "head": null
+    },
+    "brackets": {
+      "single": [],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "LA": {
+    "type": "progressive",
+    "rate": null,
+    "standardDeduction": {
+      "single": 4500,
+      "married_joint": null,
+      "head": null
+    },
+    "brackets": {
+      "single": [
+        { "upTo": 12500, "rate": 0.0185 },
+        { "upTo": 50000, "rate": 0.035 },
+        { "upTo": null, "rate": 0.0425 }
+      ],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "ME": {
+    "type": "progressive",
+    "rate": null,
+    "standardDeduction": {
+      "single": 14600,
+      "married_joint": null,
+      "head": null
+    },
+    "brackets": {
+      "single": [
+        { "upTo": 24500, "rate": 0.058 },
+        { "upTo": 58050, "rate": 0.0675 },
+        { "upTo": null, "rate": 0.0715 }
+      ],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "MD": {
+    "type": "progressive",
+    "rate": null,
+    "standardDeduction": {
+      "single": 2500,
+      "married_joint": null,
+      "head": null
+    },
+    "brackets": {
+      "single": [
+        { "upTo": 1000, "rate": 0.02 },
+        { "upTo": 2000, "rate": 0.03 },
+        { "upTo": 3000, "rate": 0.04 },
+        { "upTo": 100000, "rate": 0.0475 },
+        { "upTo": 125000, "rate": 0.05 },
+        { "upTo": 150000, "rate": 0.0525 },
+        { "upTo": null, "rate": 0.055 }
+      ],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "MA": {
+    "type": "flat",
+    "rate": 0.05,
+    "standardDeduction": {
+      "single": 4400,
+      "married_joint": null,
+      "head": null
+    },
+    "brackets": {
+      "single": [],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "MI": {
+    "type": "flat",
+    "rate": 0.0425,
+    "standardDeduction": { "single": 0, "married_joint": null, "head": null },
+    "brackets": {
+      "single": [],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "MN": {
+    "type": "progressive",
+    "rate": null,
+    "standardDeduction": {
+      "single": 13825,
+      "married_joint": null,
+      "head": null
+    },
+    "brackets": {
+      "single": [
+        { "upTo": 31000, "rate": 0.0535 },
+        { "upTo": 102000, "rate": 0.068 },
+        { "upTo": 189000, "rate": 0.0785 },
+        { "upTo": null, "rate": 0.0985 }
+      ],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "MS": {
+    "type": "progressive",
+    "rate": null,
+    "standardDeduction": {
+      "single": 2300,
+      "married_joint": null,
+      "head": null
+    },
+    "brackets": {
+      "single": [
+        { "upTo": 10000, "rate": 0.03 },
+        { "upTo": 30000, "rate": 0.04 },
+        { "upTo": null, "rate": 0.05 }
+      ],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "MO": {
+    "type": "progressive",
+    "rate": null,
+    "standardDeduction": {
+      "single": 13850,
+      "married_joint": null,
+      "head": null
+    },
+    "brackets": {
+      "single": [
+        { "upTo": 1121, "rate": 0.02 },
+        { "upTo": 2242, "rate": 0.025 },
+        { "upTo": 3363, "rate": 0.03 },
+        { "upTo": 4484, "rate": 0.035 },
+        { "upTo": 5605, "rate": 0.04 },
+        { "upTo": 6726, "rate": 0.045 },
+        { "upTo": 7847, "rate": 0.05 },
+        { "upTo": null, "rate": 0.0495 }
+      ],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "MT": {
+    "type": "progressive",
+    "rate": null,
+    "standardDeduction": {
+      "single": 5070,
+      "married_joint": null,
+      "head": null
+    },
+    "brackets": {
+      "single": [
+        { "upTo": 4100, "rate": 0.01 },
+        { "upTo": 8200, "rate": 0.02 },
+        { "upTo": 12400, "rate": 0.03 },
+        { "upTo": 16500, "rate": 0.04 },
+        { "upTo": 20600, "rate": 0.05 },
+        { "upTo": 26800, "rate": 0.06 },
+        { "upTo": null, "rate": 0.0675 }
+      ],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "NE": {
+    "type": "progressive",
+    "rate": null,
+    "standardDeduction": {
+      "single": 8000,
+      "married_joint": null,
+      "head": null
+    },
+    "brackets": {
+      "single": [
+        { "upTo": 3600, "rate": 0.0246 },
+        { "upTo": 18000, "rate": 0.0351 },
+        { "upTo": 29000, "rate": 0.0501 },
+        { "upTo": null, "rate": 0.0684 }
+      ],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "NV": {
+    "type": "none",
+    "rate": 0,
+    "standardDeduction": { "single": 0, "married_joint": null, "head": null },
+    "brackets": {
+      "single": [],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "NH": {
+    "type": "none",
+    "rate": 0,
+    "standardDeduction": { "single": 0, "married_joint": null, "head": null },
+    "brackets": {
+      "single": [],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "NJ": {
+    "type": "progressive",
+    "rate": null,
+    "standardDeduction": { "single": 0, "married_joint": null, "head": null },
+    "brackets": {
+      "single": [
+        { "upTo": 20000, "rate": 0.014 },
+        { "upTo": 35000, "rate": 0.0175 },
+        { "upTo": 40000, "rate": 0.035 },
+        { "upTo": 75000, "rate": 0.05525 },
+        { "upTo": 500000, "rate": 0.0637 },
+        { "upTo": 1000000, "rate": 0.0897 },
+        { "upTo": null, "rate": 0.1075 }
+      ],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "NM": {
+    "type": "progressive",
+    "rate": null,
+    "standardDeduction": {
+      "single": 13850,
+      "married_joint": null,
+      "head": null
+    },
+    "brackets": {
+      "single": [
+        { "upTo": 5500, "rate": 0.017 },
+        { "upTo": 11000, "rate": 0.032 },
+        { "upTo": 16000, "rate": 0.047 },
+        { "upTo": 210000, "rate": 0.049 },
+        { "upTo": null, "rate": 0.059 }
+      ],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "NY": {
+    "type": "progressive",
+    "rate": null,
+    "standardDeduction": {
+      "single": 8000,
+      "married_joint": null,
+      "head": null
+    },
+    "brackets": {
+      "single": [
+        { "upTo": 8500, "rate": 0.04 },
+        { "upTo": 11700, "rate": 0.045 },
+        { "upTo": 13900, "rate": 0.0525 },
+        { "upTo": 21400, "rate": 0.059 },
+        { "upTo": 80650, "rate": 0.0597 },
+        { "upTo": 215400, "rate": 0.0633 },
+        { "upTo": 1077550, "rate": 0.0685 },
+        { "upTo": null, "rate": 0.109 }
+      ],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "NC": {
+    "type": "flat",
+    "rate": 0.0475,
+    "standardDeduction": {
+      "single": 12750,
+      "married_joint": null,
+      "head": null
+    },
+    "brackets": {
+      "single": [],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "ND": {
+    "type": "progressive",
+    "rate": null,
+    "standardDeduction": {
+      "single": 12750,
+      "married_joint": null,
+      "head": null
+    },
+    "brackets": {
+      "single": [
+        { "upTo": 44950, "rate": 0.011 },
+        { "upTo": 99900, "rate": 0.0204 },
+        { "upTo": 207350, "rate": 0.0227 },
+        { "upTo": 458350, "rate": 0.0264 },
+        { "upTo": null, "rate": 0.029 }
+      ],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "OH": {
+    "type": "progressive",
+    "rate": null,
+    "standardDeduction": {
+      "single": 2500,
+      "married_joint": null,
+      "head": null
+    },
+    "brackets": {
+      "single": [
+        { "upTo": 26050, "rate": 0.0 },
+        { "upTo": 92800, "rate": 0.01985 },
+        { "upTo": null, "rate": 0.02476 }
+      ],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "OK": {
+    "type": "progressive",
+    "rate": null,
+    "standardDeduction": {
+      "single": 6350,
+      "married_joint": null,
+      "head": null
+    },
+    "brackets": {
+      "single": [
+        { "upTo": 1000, "rate": 0.0025 },
+        { "upTo": 2500, "rate": 0.0075 },
+        { "upTo": 3750, "rate": 0.0175 },
+        { "upTo": 4900, "rate": 0.0275 },
+        { "upTo": null, "rate": 0.0375 }
+      ],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "OR": {
+    "type": "progressive",
+    "rate": null,
+    "standardDeduction": {
+      "single": 2615,
+      "married_joint": null,
+      "head": null
+    },
+    "brackets": {
+      "single": [
+        { "upTo": 4100, "rate": 0.0475 },
+        { "upTo": 10300, "rate": 0.0675 },
+        { "upTo": 125000, "rate": 0.0875 },
+        { "upTo": null, "rate": 0.099 }
+      ],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "PA": {
+    "type": "flat",
+    "rate": 0.0307,
+    "standardDeduction": { "single": 0, "married_joint": null, "head": null },
+    "brackets": {
+      "single": [],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "RI": {
+    "type": "progressive",
+    "rate": null,
+    "standardDeduction": {
+      "single": 9450,
+      "married_joint": null,
+      "head": null
+    },
+    "brackets": {
+      "single": [
+        { "upTo": 68200, "rate": 0.0375 },
+        { "upTo": 155050, "rate": 0.0475 },
+        { "upTo": null, "rate": 0.0599 }
+      ],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "SC": {
+    "type": "progressive",
+    "rate": null,
+    "standardDeduction": { "single": 0, "married_joint": null, "head": null },
+    "brackets": {
+      "single": [
+        { "upTo": 3200, "rate": 0 },
+        { "upTo": 16040, "rate": 0.03 },
+        { "upTo": null, "rate": 0.06 }
+      ],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "SD": {
+    "type": "none",
+    "rate": 0,
+    "standardDeduction": { "single": 0, "married_joint": null, "head": null },
+    "brackets": {
+      "single": [],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "TN": {
+    "type": "none",
+    "rate": 0,
+    "standardDeduction": { "single": 0, "married_joint": null, "head": null },
+    "brackets": {
+      "single": [],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "TX": {
+    "type": "none",
+    "rate": 0,
+    "standardDeduction": { "single": 0, "married_joint": null, "head": null },
+    "brackets": {
+      "single": [],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "UT": {
+    "type": "flat",
+    "rate": 0.0455,
+    "standardDeduction": { "single": 0, "married_joint": null, "head": null },
+    "brackets": {
+      "single": [],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "VT": {
+    "type": "progressive",
+    "rate": null,
+    "standardDeduction": {
+      "single": 6500,
+      "married_joint": null,
+      "head": null
+    },
+    "brackets": {
+      "single": [
+        { "upTo": 42150, "rate": 0.0335 },
+        { "upTo": 102200, "rate": 0.066 },
+        { "upTo": 214000, "rate": 0.076 },
+        { "upTo": null, "rate": 0.0875 }
+      ],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "VA": {
+    "type": "progressive",
+    "rate": null,
+    "standardDeduction": {
+      "single": 8000,
+      "married_joint": null,
+      "head": null
+    },
+    "brackets": {
+      "single": [
+        { "upTo": 3000, "rate": 0.02 },
+        { "upTo": 5000, "rate": 0.03 },
+        { "upTo": 17000, "rate": 0.05 },
+        { "upTo": null, "rate": 0.0575 }
+      ],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "WA": {
+    "type": "none",
+    "rate": 0,
+    "standardDeduction": { "single": 0, "married_joint": null, "head": null },
+    "brackets": {
+      "single": [],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "WV": {
+    "type": "progressive",
+    "rate": null,
+    "standardDeduction": {
+      "single": 2000,
+      "married_joint": null,
+      "head": null
+    },
+    "brackets": {
+      "single": [
+        { "upTo": 10000, "rate": 0.0236 },
+        { "upTo": 25000, "rate": 0.0315 },
+        { "upTo": 40000, "rate": 0.0367 },
+        { "upTo": 60000, "rate": 0.0472 },
+        { "upTo": null, "rate": 0.0512 }
+      ],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "WI": {
+    "type": "progressive",
+    "rate": null,
+    "standardDeduction": {
+      "single": 12760,
+      "married_joint": null,
+      "head": null
+    },
+    "brackets": {
+      "single": [
+        { "upTo": 12990, "rate": 0.0354 },
+        { "upTo": 25890, "rate": 0.0465 },
+        { "upTo": 28430, "rate": 0.053 },
+        { "upTo": null, "rate": 0.0765 }
+      ],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "WY": {
+    "type": "none",
+    "rate": 0,
+    "standardDeduction": { "single": 0, "married_joint": null, "head": null },
+    "brackets": {
+      "single": [],
+      "married_joint": [],
+      "head": []
+    }
+  },
+
+  "DC": {
+    "type": "progressive",
+    "rate": null,
+    "standardDeduction": {
+      "single": 13100,
+      "married_joint": null,
+      "head": null
+    },
+    "brackets": {
+      "single": [
+        { "upTo": 10000, "rate": 0.04 },
+        { "upTo": 40000, "rate": 0.06 },
+        { "upTo": 60000, "rate": 0.065 },
+        { "upTo": 350000, "rate": 0.085 },
+        { "upTo": 1000000, "rate": 0.0875 },
+        { "upTo": null, "rate": 0.0895 }
+      ],
+      "married_joint": [],
+      "head": []
+    }
+  }
+}

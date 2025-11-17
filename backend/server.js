@@ -6,6 +6,7 @@ import admin from "firebase-admin";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { computeTax } from "./tax/taxEngine.js";
 
 //-------setup environment-------
 dotenv.config();
@@ -190,6 +191,62 @@ if (process.env.NODE_ENV === "development") {
     });
   });
 }
+
+// ========================================================
+//  TAX CALCULATOR ROUTE (2025 REAL DATA, SINGLE ONLY)
+// ========================================================
+
+
+// Resolve __dirname already exists above, so we reuse it
+
+// Load tax JSON files ONCE (cached in memory)
+const federal2025 = JSON.parse(
+  fs.readFileSync(path.join(__dirname, "tax/data/federal_2025.preview.json"), "utf8")
+);
+
+const states2025 = JSON.parse(
+  fs.readFileSync(path.join(__dirname, "tax/data/states_2025.preview.json"), "utf8")
+);
+
+// -------------------- TAX API --------------------
+app.post("/api/tax/calculate", (req, res) => {
+  try {
+    const { income, state } = req.body;
+
+    if (!income || isNaN(income)) {
+      return res.status(400).json({ error: "Income must be a valid number." });
+    }
+
+    if (!state) {
+      return res.status(400).json({ error: "State is required." });
+    }
+
+    const stateCfg = states2025[state];
+
+    if (!stateCfg) {
+      return res.status(400).json({ error: `State '${state}' not found in 2025 dataset.` });
+    }
+
+    // SINGLE ONLY — clean future-proof design
+    const result = computeTax({
+      income: Number(income),
+      filingStatus: "single",
+      federal: federal2025,
+      stateCfg,
+    });
+
+    return res.json({
+      success: true,
+      income: Number(income),
+      state,
+      ...result,
+    });
+
+  } catch (err) {
+    console.error("Tax Engine Error:", err);
+    res.status(500).json({ error: "Tax calculation failed" });
+  }
+});
 
 // 404 handler (for unknown routes)
 app.use((req, res) => {
