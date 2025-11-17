@@ -1,3 +1,4 @@
+import { GoogleGenAI } from "@google/genai";
 import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
@@ -5,10 +6,10 @@ import admin from "firebase-admin";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { GoogleGenAI } from "@google/genai";
 
 //-------setup environment-------
 dotenv.config();
+console.log("Current mode:", process.env.NODE_ENV); //to check the mode development or deployed
 
 //Express app initialization------
 const app = express();
@@ -112,6 +113,60 @@ app.post("/api/gemini/chat", async (request, response) => {
   }
 });
 
+//--------Marketaux News API endpoint---------
+app.get("/api/news", async (req, res) => {
+  try {
+    const MARKETAUX_API_KEY = process.env.MARKETAUX_API_KEY;
+
+    if (!MARKETAUX_API_KEY) {
+      console.error("MARKETAUX_API_KEY is not set in environment variables");
+      return res.status(500).json({
+        error:
+          "MarketAux API key not configured. Please add MARKETAUX_API_KEY to your .env file",
+      });
+    }
+
+    console.log("Fetching news from MarketAux API...");
+    const symbols = "TSLA,AAPL,MSFT,AMZN,GOOGL,META,NVDA,JPM,V,WMT";
+    const apiUrl = `https://api.marketaux.com/v1/news/all?symbols=${symbols}&filter_entities=true&language=en&limit=10&api_token=${MARKETAUX_API_KEY}`;
+
+    const response = await fetch(apiUrl, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "Obfin-Finance-App/1.0",
+      },
+    });
+
+    console.log("MarketAux API response status:", response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("MarketAux API error response:", errorText);
+      throw new Error(`MarketAux API returned status ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log(
+      "MarketAux API success, returned",
+      data.data?.length || 0,
+      "articles",
+    );
+
+    res.status(200).json({
+      status: "success",
+      data: data.data,
+      meta: data.meta || {},
+    });
+  } catch (error) {
+    console.error("MarketAux API error:", error.message);
+    res.status(500).json({
+      error: "Failed to fetch financial news",
+      details: error.message,
+    });
+  }
+});
+
 // --- Health & Diagnostics ---
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "ok", service: "obfin-backend" });
@@ -120,6 +175,21 @@ app.get("/health", (req, res) => {
 app.get("/api/version", (req, res) => {
   res.json({ api: "v1", env: process.env.NODE_ENV || "development" });
 });
+
+// Test route for frontend-backend communication
+//this route will only exist in development mode and when we deploy it it would be removed automatically
+// ---------------- Dev-only test route ----------------
+// this route exists ONLY during local development for quick connection checks.
+if (process.env.NODE_ENV === "development") {
+  app.get("/api/testUser", (req, res) => {
+    res.json({
+      success: true,
+      message: "Frontend and backend are connected! (dev mode)",
+      timestamp: new Date().toISOString(),
+      sampleUser: { name: "Poojan Shah", project: "Obfin" },
+    });
+  });
+}
 
 // 404 handler (for unknown routes)
 app.use((req, res) => {

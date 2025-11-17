@@ -1,23 +1,22 @@
-import { signOut } from "firebase/auth";
-import { auth } from "../firebase/firebase";
-import { getAuth } from "firebase/auth";
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { signOut, getAuth } from "firebase/auth";
+import { doc, getFirestore, onSnapshot } from "firebase/firestore";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
-  PieChart,
-  Pie,
-  Cell,
-  BarChart,
   Bar,
-  LineChart,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
   Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
 } from "recharts";
-import { getFirestore, doc, onSnapshot } from "firebase/firestore";
+import { auth } from "../firebase/firebase";
 
 // separate chat box component to prevent re-renders to charts
 function Chatbot() {
@@ -35,13 +34,16 @@ function Chatbot() {
     setChatLoading(true);
 
     try {
-      const response = await fetch("http://localhost:5001/api/gemini/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetch(
+        `${process.env.REACT_APP_API_BASE_URL}/api/gemini/chat`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ message: userMessage }),
         },
-        body: JSON.stringify({ message: userMessage }),
-      });
+      );
 
       const data = await response.json();
 
@@ -222,6 +224,233 @@ function Chatbot() {
   );
 }
 
+function News() {
+  const [news, setNews] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchNews = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_API_BASE_URL}/api/news`,
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch news");
+        }
+
+        const data = await response.json();
+        setNews(data.data || []);
+        setLoading(false);
+      } catch (err) {
+        console.error("Error fetching news:", err);
+        setError(err.message);
+        setLoading(false);
+      }
+    };
+
+    fetchNews();
+
+    // Refreshes every 15 minutes
+    const interval = setInterval(fetchNews, 15 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const goToPrevious = () => {
+    setCurrentIndex((prev) => (prev - 1 + news.length) % news.length);
+  };
+
+  const goToNext = () => {
+    setCurrentIndex((prev) => (prev + 1) % news.length);
+  };
+
+  const goToSlide = (index) => {
+    setCurrentIndex(index);
+  };
+
+  if (loading) {
+    return (
+      <div className="rounded-lg bg-white p-6 shadow-sm">
+        <h2 className="mb-4 text-lg font-semibold text-gray-800">
+          Financial News
+        </h2>
+        <div className="flex h-64 items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-green-600"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-lg bg-white p-6 shadow-sm">
+        <h2 className="mb-4 text-lg font-semibold text-gray-800">
+          Financial News
+        </h2>
+        <div className="flex h-64 items-center justify-center">
+          <p className="text-red-600">Failed to load news: {error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (news.length === 0) {
+    return (
+      <div className="rounded-lg bg-white p-6 shadow-sm">
+        <h2 className="mb-4 text-lg font-semibold text-gray-800">
+          Financial News
+        </h2>
+        <div className="flex h-64 items-center justify-center">
+          <p className="text-gray-500">No news available</p>
+        </div>
+      </div>
+    );
+  }
+
+  const currentArticle = news[currentIndex];
+
+  return (
+    <div className="rounded-lg bg-white p-6 shadow-sm">
+      <h2 className="mb-4 text-lg font-semibold text-gray-800">
+        Financial News
+      </h2>
+
+      <div className="relative">
+        <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-green-50 to-blue-50">
+          {/* Article's image */}
+          {currentArticle.image_url && (
+            <div className="h-48 w-full overflow-hidden">
+              <img
+                src={currentArticle.image_url}
+                alt={currentArticle.title}
+                className="h-full w-full object-cover"
+                onError={(e) => {
+                  e.target.style.display = "none";
+                }}
+              />
+            </div>
+          )}
+
+          {/* Article contents */}
+          <div className="p-6">
+            <div className="mb-2 flex items-center gap-2 text-xs text-gray-500">
+              <span className="rounded-full bg-green-100 px-2 py-1 text-green-700">
+                {currentArticle.source}
+              </span>
+              <span>
+                {new Date(currentArticle.published_at).toLocaleDateString()}
+              </span>
+            </div>
+
+            <h3 className="mb-3 line-clamp-2 text-xl font-bold text-gray-900">
+              {currentArticle.title}
+            </h3>
+
+            <p className="mb-4 line-clamp-3 text-sm text-gray-600">
+              {currentArticle.description}
+            </p>
+
+            {/* Entities/Stock symbols */}
+            {currentArticle.entities && currentArticle.entities.length > 0 && (
+              <div className="mb-4 flex flex-wrap gap-2">
+                {currentArticle.entities.slice(0, 3).map((entity, idx) => (
+                  <span
+                    key={idx}
+                    className="rounded-md bg-blue-100 px-2 py-1 text-xs font-medium text-blue-700"
+                  >
+                    {entity.symbol}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <a
+              href={currentArticle.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-sm font-medium text-green-600 hover:text-green-700"
+            >
+              Read full article
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                />
+              </svg>
+            </a>
+          </div>
+        </div>
+
+        {/* Navigation arrows */}
+        <button
+          onClick={goToPrevious}
+          className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-2 shadow-lg transition-all hover:scale-110 hover:bg-white"
+          aria-label="Previous article"
+        >
+          <svg
+            className="h-5 w-5 text-gray-700"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15 19l-7-7 7-7"
+            />
+          </svg>
+        </button>
+
+        <button
+          onClick={goToNext}
+          className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-2 shadow-lg transition-all hover:scale-110 hover:bg-white"
+          aria-label="Next article"
+        >
+          <svg
+            className="h-5 w-5 text-gray-700"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 5l7 7-7 7"
+            />
+          </svg>
+        </button>
+
+        {/* Dot indicators */}
+        <div className="mt-4 flex justify-center gap-2">
+          {news.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => goToSlide(index)}
+              className={`h-2 rounded-full transition-all ${
+                index === currentIndex
+                  ? "w-8 bg-green-600"
+                  : "w-2 bg-gray-300 hover:bg-gray-400"
+              }`}
+              aria-label={`Go to article ${index + 1}`}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const [monthlyIncome, setMonthlyIncome] = useState(0);
   const [totalSpent, setTotalSpent] = useState(0);
@@ -231,6 +460,8 @@ export default function Dashboard() {
   const [trendData, setTrendData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  //backend health check
+  const [backendStatus, setBackendStatus] = useState("checking");
 
   // memoize category colors to prevent re-creation
   const categoryColors = useMemo(
@@ -310,12 +541,13 @@ export default function Dashboard() {
 
   useEffect(() => {
     const db = getFirestore();
-    const auth = getAuth();
-    const user = auth.currentUser;
+    //NOTE: Left uncommented for now until we add transaction implementation
+    //const auth = getAuth();
+    //const user = auth.currentUser;
     const userId = "iEQ13Kho4PfaRWY2n3d8";
     //const userId = user.uid;
-
-    const docRef = doc(db, user, userId);
+    const docRef = doc(db, "testUser", userId);
+    //const docRef = doc(db, "users", userId);
 
     const unsubscribe = onSnapshot(
       docRef,
@@ -360,6 +592,37 @@ export default function Dashboard() {
     );
     return () => unsubscribe();
   }, [processSpendingData, processBudgetData, processTrendData]);
+
+  //for server status monitoring, keeping it now for testing and debugging purposes and might keep it after development phase ----------do not remove it---------------
+  useEffect(() => {
+    const base = process.env.REACT_APP_API_BASE_URL;
+    if (!base) {
+      setBackendStatus("env-missing");
+      return;
+    }
+    // console.log("Testing connection to backend:", base); <-- used this while making frontend talk to backend (for testing purposes)
+    fetch(`${base}/health`)
+      .then((r) => r.json())
+      .then((d) => setBackendStatus(d?.status || "unknown"))
+      .catch(() => setBackendStatus("down"));
+  }, []);
+
+  // ---------------- Dev-only backend connection test ----------------
+  // This fetch is for confirming frontend↔backend link during development.
+  // It can be safely ignored in production.
+  useEffect(() => {
+    const base = process.env.REACT_APP_API_BASE_URL;
+    if (!base) return;
+
+    fetch(`${base}/api/testUser`)
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("Test API Response:", data);
+      })
+      .catch((err) => {
+        console.error("Error connecting to test API:", err);
+      });
+  }, []);
 
   const handleSignOut = async () => {
     try {
@@ -410,12 +673,46 @@ export default function Dashboard() {
             <p className="mb-6 text-gray-700">
               Welcome to Obfin: Finance Manager & Advisor
             </p>
+
+            {/* Backend status pill, great for quick visual confirmation, will keep it while developing, but later we can hide it  behind a dev-only flag ------do not remove it--------- */}
+
+            <div className="mb-4">
+              <span
+                className={
+                  "inline-flex items-center rounded-full px-3 py-1 text-xs font-medium " +
+                  (backendStatus === "ok"
+                    ? "bg-green-100 text-green-700"
+                    : backendStatus === "checking"
+                      ? "bg-yellow-100 text-yellow-700"
+                      : backendStatus === "env-missing"
+                        ? "bg-gray-100 text-gray-700"
+                        : "bg-red-100 text-red-700")
+                }
+                title={
+                  backendStatus === "env-missing"
+                    ? "REACT_APP_API_BASE_URL not set"
+                    : ""
+                }
+              >
+                {backendStatus === "ok" && "Backend: ok"}
+                {backendStatus === "checking" && "Backend: checking…"}
+                {backendStatus === "down" && "Backend: unreachable"}
+                {backendStatus === "env-missing" && "Backend: env missing"}
+                {backendStatus === "unknown" && "Backend: unknown"}
+              </span>
+            </div>
+
             <button
               onClick={handleSignOut}
               className="rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700"
             >
               Sign Out
             </button>
+          </div>
+          {/* News Segment*/}
+
+          <div className="mb-8">
+            <News />
           </div>
 
           {/* Summary Cards */}
