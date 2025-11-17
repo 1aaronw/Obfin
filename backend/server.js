@@ -76,41 +76,104 @@ app.get("/api/test", async (req, res) => {
 // express js post route
 app.post("/api/gemini/chat", async (request, response) => {
   try {
-    // destructure hashmap
-    const { message } = request.body;
+    const { message, uid } = request.body;
 
-    // pre-request handling
+    // Validation
     if (!message) {
-      return response
-        .status(400)
-        .json({ error: "400 Bad Request: Message is required" });
+      return response.status(400).json({ error: "Message is required." });
+    }
+    if (!uid) {
+      return response.status(400).json({ error: "User ID (uid) is required." });
     }
 
-    // TODO: edit the message to have user financial data and current news context
+    const db = admin.firestore();
 
-    // generate response using given message
-    const result = await genAI.models.generateContent({
-      // async await call to prevent blocking
-      model: "gemini-2.5-flash",
-      contents: [{ parts: [{ text: message }] }],
+    // ===================== FETCH TAX HISTORY =====================
+    const taxRef = db
+      .collection("users")
+      .doc(uid)
+      .collection("taxCalculations")
+      .orderBy("createdAt", "desc")
+      .limit(10);
+
+    const taxSnapshot = await taxRef.get();
+
+    let taxHistory = [];
+    taxSnapshot.forEach((doc) => {
+      let d = doc.data();
+      taxHistory.push({
+        date: d.createdAt?.toDate?.().toLocaleString() || "N/A",
+        income: d.income,
+        state: d.state,
+        federalTax: d.federalTax,
+        stateTax: d.stateTax,
+        totalTax: d.totalTax,
+        effectiveRate: d.effectiveRate,
+      });
     });
 
-    console.log("Google Gemini API Response:", JSON.stringify(result, null, 2));
+    // Convert to readable text for Gemini
+    const historyString =
+      taxHistory.length > 0
+        ? taxHistory
+            .map(
+              (t, i) =>
+                `${i + 1}. ${t.date} — Income: $${t.income}, State: ${t.state}, Federal: $${t.federalTax}, StateTax: $${t.stateTax}, Total: $${t.totalTax}, EffectiveRate: ${t.effectiveRate}%`
+            )
+            .join("\n")
+        : "No tax history available.";
 
-    // check every lookup for null / undefined, if former, then return right of ||
+    // ===================== SYSTEM CONTEXT =====================
+    const systemPrompt = `
+You are Obfin's AI Financial Advisor.
+
+Below is the user's latest tax history. Use it to answer tax questions, compare entries, observe trends, and give personalized insights.
+
+TAX HISTORY:
+${historyString}
+
+If the user asks about something unrelated to taxes, respond normally.
+Do NOT make up tax data.
+    `;
+
+    // ===================== GEMINI REQUEST =====================
+    const geminiResponse = await genAI.models.generateContent({
+  model: "gemini-2.5-flash",
+  contents: [
+    {
+      parts: [
+        {
+          text: `
+You are Obfin's AI Financial Advisor.
+
+Below is the user's latest tax history. Use it to answer tax questions, compare entries, observe trends, and give personalized insights.
+
+TAX HISTORY:
+${historyString}
+
+User question:
+${message}
+          `
+        }
+      ]
+    }
+  ]
+});
+
     const text =
-      result.candidates?.[0]?.content?.parts?.[0]?.text || "NO_RESPONSE_FOUND";
+      geminiResponse?.candidates?.[0]?.content?.parts?.[0]?.text ||
+      "NO_RESPONSE_FOUND";
 
+    // ===================== SEND RESPONSE =====================
     response.json({
       status: "success",
       response: text,
       model: "gemini-2.5-flash",
+      taxHistoryIncluded: taxHistory.length,
     });
   } catch (error) {
     console.error("Google Gemini API error:", error);
-    response
-      .status(500)
-      .json({ error: "500: Failed to get response from Gemini" });
+    response.status(500).json({ error: "500: Failed to get response from Gemini" });
   }
 });
 
