@@ -1,18 +1,25 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { auth } from "../firebase/firebase";
 
 export default function AIAdvisor() {
-  const [message, setMessage] = useState("");
-  const [response, setResponse] = useState("");
+  const [input, setInput] = useState("");
+  const [messages, setMessages] = useState([]); // local-only chat history
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  const sendMessage = async () => {
-  setLoading(true);
-  setErrorMsg("");
-  setResponse("");
+  const bottomRef = useRef(null);
 
-  try {
+  // Auto scroll to bottom
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading]);
+
+  const sendMessage = async () => {
+    if (!input.trim()) return;
+
+    setErrorMsg("");
+    setLoading(true);
+
     const user = auth.currentUser;
     if (!user) {
       setErrorMsg("You must be logged in to use the advisor.");
@@ -22,53 +29,83 @@ export default function AIAdvisor() {
 
     const uid = user.uid;
 
-    const res = await fetch("http://localhost:5001/api/gemini/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message, uid }),
-    });
+    // Add your message to UI immediately
+    setMessages((prev) => [...prev, { sender: "user", text: input }]);
 
-    const data = await res.json();
+    try {
+      const res = await fetch("http://localhost:5001/api/gemini/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: input, uid }),
+      });
 
-    if (!res.ok) {
-      setErrorMsg(data.error || "Something went wrong");
-    } else {
-      setResponse(data.response);
+      const data = await res.json();
+
+      if (!res.ok) {
+        setErrorMsg(data.error || "Something went wrong");
+      } else {
+        setMessages((prev) => [
+          ...prev,
+          { sender: "ai", text: data.response },
+        ]);
+      }
+    } catch (err) {
+      setErrorMsg("Backend connection failed");
     }
-  } catch (err) {
-    setErrorMsg("Backend connection failed");
-  } finally {
+
+    setInput("");
     setLoading(false);
-  }
-};
+  };
 
   return (
     <div className="p-8 max-w-3xl mx-auto">
       <h1 className="text-3xl font-bold mb-6">AI Financial Advisor</h1>
 
-      <textarea
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-        placeholder="Ask anything about your finances..."
-        className="w-full p-3 border rounded mb-4"
-        rows={4}
-      />
+      {/* Chat Box */}
+      <div className="border rounded p-4 h-[400px] overflow-y-auto bg-white shadow-sm">
+        {messages.map((msg, idx) => (
+          <div
+            key={idx}
+            className={`mb-3 p-3 rounded max-w-[75%] whitespace-pre-line ${
+              msg.sender === "user"
+                ? "bg-blue-600 text-white ml-auto"
+                : "bg-gray-200 text-black mr-auto"
+            }`}
+          >
+            {msg.text}
+          </div>
+        ))}
 
-      <button
-        onClick={sendMessage}
-        disabled={loading}
-        className="bg-blue-600 text-white py-2 px-4 rounded"
-      >
-        {loading ? "Thinking..." : "Ask Advisor"}
-      </button>
+        {loading && (
+          <div className="mr-auto bg-gray-200 text-black p-3 rounded">
+            Thinking…
+          </div>
+        )}
 
-      {errorMsg && <p className="text-red-600 mt-4">{errorMsg}</p>}
+        <div ref={bottomRef} />
+      </div>
 
-      {response && (
-        <div className="mt-6 p-4 bg-gray-100 border rounded whitespace-pre-line">
-          {response}
-        </div>
+      {errorMsg && (
+        <p className="text-red-600 mt-4">{errorMsg}</p>
       )}
+
+      {/* Input Area */}
+      <div className="mt-4 flex">
+        <input
+          className="flex-1 border p-3 rounded-l"
+          placeholder="Ask anything about your finances..."
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && !loading && sendMessage()}
+        />
+        <button
+          onClick={sendMessage}
+          disabled={loading}
+          className="bg-blue-600 text-white px-4 py-2 rounded-r"
+        >
+          Send
+        </button>
+      </div>
     </div>
   );
 }
