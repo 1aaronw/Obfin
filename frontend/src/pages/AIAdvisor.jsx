@@ -6,6 +6,13 @@ export default function AIAdvisor() {
   const [messages, setMessages] = useState([]); // chat messages
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const recommendedPrompts = [
+  "What did I spend most on this month?",
+  "Am I overspending in Food?",
+  "Summarize my last 30 days spending",
+  "What was my income last year?",
+  "How can I save more money?",
+];
 
   const bottomRef = useRef(null);
 
@@ -122,6 +129,24 @@ export default function AIAdvisor() {
       {errorMsg && (
         <p className="text-red-600 mt-4">{errorMsg}</p>
       )}
+
+      {/* Recommended Prompts */}
+      <div className="mt-4">
+        <h3 className="font-semibold mb-2">Try asking:</h3>
+        <div className="flex flex-wrap gap-2">
+        {recommendedPrompts.map((p, idx) => (
+          <button
+            key={idx}
+            onClick={() => {
+              setInput(p);
+            }}
+            className="bg-gray-200 hover:bg-gray-300 text-black px-3 py-1 rounded"
+          >
+            {p}
+          </button>
+        ))}
+        </div>
+      </div>
 
       {/* Input */}
       <div className="mt-4 flex">
