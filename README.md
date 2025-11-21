@@ -31,7 +31,7 @@ cp backend/config/serviceAccountKey.example.json backend/config/serviceAccountKe
 ```
 
 **Edit files:**
-- `backend/.env`: add GEMINI_API_KEY
+- `backend/.env`: add GEMINI_API_KEY and MARKETAUX_API_KEY
 - `frontend/.env.local`: Firebase web app config
 - `backend/config/serviceAccountKey.json`: replace ALL contents with your downloaded Firebase Admin private key JSON
 
