@@ -14,6 +14,8 @@ npm install
 
 cd backend && npm install
 cd ../frontend && npm install
+
+cd ../
 ```
 
 ### 3. Environment Setup
