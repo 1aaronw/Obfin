@@ -12,7 +12,11 @@
     "frontend-check": "npm --prefix frontend run check",
     "backend-check": "npm --prefix backend run check",
     "frontend-eslint": "npm --prefix frontend run eslint",
-    "backend-eslint": "npm --prefix backend run eslint"
+    "backend-eslint": "npm --prefix backend run eslint",
+    "backend-dev": "npm --prefix backend run dev",
+    "backend-start": "npm --prefix backend run start",
+    "frontend-start": "npm --prefix frontend run start",
+    "frontend-build": "npm --prefix frontend run build"
   },
   "devDependencies": {
     "@eslint/js": "^9.38.0",
