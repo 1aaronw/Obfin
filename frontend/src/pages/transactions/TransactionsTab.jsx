@@ -42,7 +42,7 @@ export default function TransactionsTab() {
     );
 
     return () => unsubscribe(); // Cleanup listener on unmount
-  });
+  }, []);
   if (loading) {
     return <p>Loading your transactions...</p>;
   }
