@@ -2,13 +2,42 @@ import { useState } from "react";
 import TaxHistoryTab from "./transactions/TaxHistoryTab";
 import TransactionsTab from "./transactions/TransactionsTab";
 import AddTransactionModal from "./transactions/AddTransactionModal";
+import { setDoc, doc } from "firebase/firestore";
+import { db } from "../firebase/firebase";
 
 export default function Transactions() {
   const [activeTab, setActiveTab] = useState("transactions");
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const [transaction, setTransaction] = useState({
+    date: "",
+    category: "",
+    amount: "",
+    description: "",
+  });
+
+  const handleChange = (updatedValues) => {
+    setTransaction(updatedValues);
+  };
+
   function handleAddTransaction() {
     // logic to add transaction goes here
+    if (transaction.amount === "" || Number(transaction.amount) < 0) {
+      alert("Amount must have a positive number!");
+      return;
+    }
+    if (transaction.description === "") {
+      alert("Description can not be empty!");
+      return;
+    }
+    if (transaction.date === "") {
+      alert("Date can not be empty!");
+      return;
+    }
+    if (transaction.category === "") {
+      alert("Category can not be empty!");
+      return;
+    }
     console.log("Transaction added!");
     setIsModalOpen(false);
   }
@@ -57,6 +86,7 @@ export default function Transactions() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onAdd={handleAddTransaction}
+        onChange={handleChange}
       />
     </div>
   );
