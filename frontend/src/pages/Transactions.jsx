@@ -2,8 +2,9 @@ import { useState } from "react";
 import TaxHistoryTab from "./transactions/TaxHistoryTab";
 import TransactionsTab from "./transactions/TransactionsTab";
 import AddTransactionModal from "./transactions/AddTransactionModal";
-import { setDoc, doc } from "firebase/firestore";
+import { collection, doc, updateDoc, increment } from "firebase/firestore";
 import { db } from "../firebase/firebase";
+import { getAuth } from "firebase/auth";
 
 export default function Transactions() {
   const [activeTab, setActiveTab] = useState("transactions");
@@ -20,7 +21,7 @@ export default function Transactions() {
     setTransaction(updatedValues);
   };
 
-  function handleAddTransaction() {
+  async function handleAddTransaction() {
     // logic to add transaction goes here
     if (transaction.amount === "" || Number(transaction.amount) < 0) {
       alert("Amount must have a positive number!");
@@ -38,8 +39,31 @@ export default function Transactions() {
       alert("Category can not be empty!");
       return;
     }
-    console.log("Transaction added!");
-    setIsModalOpen(false);
+    const auth = getAuth();
+    const user = auth.currentUser;
+    const month = transaction.date.substring(5, 7);
+    const year = transaction.date.substring(0, 4);
+    const transId = doc(collection(db, "users", user.uid, "spending")).id; //generates a unique id
+    const extractYearMonth = `${year}-${month}`;
+    try {
+      await updateDoc(doc(db, "users", user.uid), {
+        [`spending.${transId}`]: {
+          amount: Number(transaction.amount),
+          category: transaction.category,
+          date: transaction.date,
+          description: transaction.description,
+        },
+        [`monthlyTrends.${extractYearMonth}`]: increment(
+          Number(transaction.amount),
+        ),
+      });
+      console.log("Transaction added!");
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error("Error saving transaction", error);
+      alert("Failed to add transaction.");
+      setIsModalOpen(false);
+    }
   }
 
   return (
