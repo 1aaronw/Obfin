@@ -1,4 +1,4 @@
-import { collection, getDocs, orderBy, query } from "firebase/firestore";
+import { doc, onSnapshot } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { auth, db } from "../../firebase/firebase";
 
@@ -13,28 +13,36 @@ export default function TransactionsTab() {
       return;
     }
 
-    async function fetchTx() {
-      try {
-        const txRef = collection(db, "users", user.uid, "transactions");
-        const q = query(txRef, orderBy("date", "desc"));
-        const snap = await getDocs(q);
+    const userDocRef = doc(db, "users", user.uid);
 
-        const results = snap.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
+    // Listen for real-time updates
+    const unsubscribe = onSnapshot(
+      userDocRef,
+      (snap) => {
+        const data = snap.data();
+        const transactionMap = data?.spending || {};
 
-        setTransactions(results);
-      } catch (err) {
-        console.error("Error loading transactions:", err);
-      } finally {
+        const transactionsArray = Object.entries(transactionMap).map(
+          ([id, tx]) => ({
+            id,
+            ...tx,
+          }),
+        );
+
+        // Sort descending by date
+        transactionsArray.sort((a, b) => b.createdAt - a.createdAt);
+
+        setTransactions(transactionsArray);
         setLoading(false);
-      }
-    }
+      },
+      (error) => {
+        console.error("Error fetching transactions:", error);
+        setLoading(false);
+      },
+    );
 
-    fetchTx();
-  }, []);
-
+    return () => unsubscribe(); // Cleanup listener on unmount
+  });
   if (loading) {
     return <p>Loading your transactions...</p>;
   }
@@ -48,11 +56,8 @@ export default function TransactionsTab() {
       {transactions.map((tx) => (
         <div key={tx.id} className="mb-4 rounded border bg-white p-4 shadow-sm">
           <p>
-            <strong>Date:</strong>{" "}
-            {tx.date?.toDate?.().toLocaleString() ?? "N/A"}
-          </p>
-          <p>
-            <strong>Type:</strong> {tx.type}
+            <strong>Date: </strong>
+            {tx.date}
           </p>
           <p>
             <strong>Category:</strong> {tx.category}

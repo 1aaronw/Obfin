@@ -16,6 +16,7 @@ export default function Transactions() {
     amount: "",
     description: "",
   });
+  const [transactionsUpdated, setTransactionsUpdated] = useState(false);
 
   const handleChange = (updatedValues) => {
     setTransaction(updatedValues);
@@ -44,6 +45,7 @@ export default function Transactions() {
     const month = transaction.date.substring(5, 7);
     const year = transaction.date.substring(0, 4);
     const transId = doc(collection(db, "users", user.uid, "spending")).id; //generates a unique id
+
     const extractYearMonth = `${year}-${month}`;
     try {
       await updateDoc(doc(db, "users", user.uid), {
@@ -58,7 +60,15 @@ export default function Transactions() {
         ),
       });
       console.log("Transaction added!");
+      setTransactionsUpdated((prev) => !prev); // trigger refresh in child
       setIsModalOpen(false);
+      setTransaction({
+        date: "",
+        category: "",
+        amount: "",
+        description: "",
+        createdAt: Date.now(),
+      });
     } catch (error) {
       console.error("Error saving transaction", error);
       alert("Failed to add transaction.");
@@ -104,7 +114,11 @@ export default function Transactions() {
       </div>
 
       {/* CONTENT */}
-      {activeTab === "transactions" ? <TransactionsTab /> : <TaxHistoryTab />}
+      {activeTab === "transactions" ? (
+        <TransactionsTab transactionsUpdated={transactionsUpdated} />
+      ) : (
+        <TaxHistoryTab />
+      )}
 
       <AddTransactionModal
         isOpen={isModalOpen}
