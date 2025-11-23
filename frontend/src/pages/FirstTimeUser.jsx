@@ -21,7 +21,7 @@ export default function FirstTimeUser() {
   });
 
   const [incomeData, setIncomeData] = useState({
-    monthly_income: "",
+    monthlyIncome: "",
     state: "",
     savingsGoal: "",
   });
@@ -34,10 +34,10 @@ export default function FirstTimeUser() {
   };
 
   const isIncomeValid = () => {
-    const { monthly_income, savingsGoal, state } = incomeData; // since savingsGoal is a string need to check for it
+    const { monthlyIncome, savingsGoal, state } = incomeData; // since savingsGoal is a string need to check for it
     return (
-      monthly_income !== "" &&
-      Number(monthly_income) > 0 &&
+      monthlyIncome !== "" &&
+      Number(monthlyIncome) > 0 &&
       savingsGoal !== "" &&
       Number(savingsGoal) > 0 &&
       state !== ""
@@ -71,14 +71,14 @@ export default function FirstTimeUser() {
       //creates a new doc and adds stores budget and income fields
       await setDoc(doc(db, "users", user.uid), {
         createdAt: new Date(),
-        budget: {
+        budgets: {
           entertainment: Number(budget.entertainment),
           food: Number(budget.food),
           insurance: Number(budget.insurance),
           utilities: Number(budget.utilities),
           miscellaneous: Number(budget.miscellaneous),
         },
-        monthly_income: Number(incomeData.monthly_income),
+        monthlyIncome: Number(incomeData.monthlyIncome),
         state: incomeData.state,
         savingsGoal: Number(incomeData.savingsGoal),
       });

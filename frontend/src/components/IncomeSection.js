@@ -2,7 +2,7 @@ import { useState } from "react";
 
 export default function IncomeSection({ onIncomeChange }) {
   const [income, setIncome] = useState({
-    monthly_income: "",
+    monthlyIncome: "",
     state: "",
     savingsGoal: "",
   });
@@ -27,9 +27,9 @@ export default function IncomeSection({ onIncomeChange }) {
       <div className="mb-4 grid grid-cols-2 gap-4">
         <input
           type="number"
-          id="monthly_income"
+          id="monthlyIncome"
           placeholder="Monthly Income"
-          value={income.monthly_income}
+          value={income.monthlyIncome}
           onChange={handleChange}
           className="w-full rounded-md border border-gray-300 p-2"
         />

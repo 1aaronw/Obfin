@@ -489,12 +489,14 @@ export default function Dashboard() {
   );
 
   const processSpendingData = useCallback(
-    (spending) => {
+    (spending, yearMonth) => {
+      //pass in the month
       const categories = {};
       let total = 0;
 
       Object.values(spending).forEach((transaction) => {
-        const category = transaction.category || "other";
+        if (!transaction.date.startsWith(yearMonth)) return; //dont add to total if not the current month
+        const category = (transaction.category || "other").toLowerCase();
         const amount = parseFloat(transaction.amount) || 0;
 
         categories[category] = (categories[category] || 0) + amount;
@@ -564,6 +566,7 @@ export default function Dashboard() {
       console.log("Logged in as:", user.uid);
 
       const docRef = doc(db, "users", user.uid);
+      const currentMonthYear = new Date().toISOString().slice(0, 7);
       //const docRef = doc(db, "testUser", TEST_UID);
 
       const unsubscribeDoc = onSnapshot(
@@ -577,7 +580,7 @@ export default function Dashboard() {
               setSavingsGoal(data.savingsGoal || 1000);
 
               if (data.spending) {
-                processSpendingData(data.spending);
+                processSpendingData(data.spending, currentMonthYear);
               }
               if (data.budgets) {
                 processBudgetData(data.budgets, data.spending);
