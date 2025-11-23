@@ -33,6 +33,16 @@ function Chatbot() {
     setMessages((prev) => [...prev, { type: "user", text: userMessage }]);
     setChatLoading(true);
 
+    const user = auth.currentUser;
+    if (!user) {
+      setMessages((prev) => [...prev, { type: "error", text: "Please sign in to use the Finance Assistant." }]);
+      setChatLoading(false);
+      return;
+    }
+
+    const uid = user.uid;
+    console.log("Dashboard chat - sending with uid:", uid);
+
     try {
       const response = await fetch(
         `${process.env.REACT_APP_API_BASE_URL}/api/gemini/chat`,
@@ -41,7 +51,7 @@ function Chatbot() {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ message: userMessage }),
+          body: JSON.stringify({ message: userMessage, uid }),
         },
       );
 
