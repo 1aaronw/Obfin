@@ -35,7 +35,10 @@ function Chatbot() {
 
     const user = auth.currentUser;
     if (!user) {
-      setMessages((prev) => [...prev, { type: "error", text: "Please sign in to use the Finance Assistant." }]);
+      setMessages((prev) => [
+        ...prev,
+        { type: "error", text: "Please sign in to use the Finance Assistant." },
+      ]);
       setChatLoading(false);
       return;
     }
