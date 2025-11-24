@@ -1,10 +1,13 @@
 import { doc, onSnapshot } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { auth, db } from "../../firebase/firebase";
+import EditTransaction from "./EditTransaction";
 
 export default function TransactionsTab() {
   const [loading, setLoading] = useState(true);
   const [transactions, setTransactions] = useState([]);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState(null);
 
   useEffect(() => {
     const user = auth.currentUser;
@@ -43,9 +46,14 @@ export default function TransactionsTab() {
     return () => unsubscribe(); // Cleanup listener on unmount
   }, []);
 
+  function handleEdit(transaction) {
+    setEditingTransaction(transaction);
+    setIsEditOpen(true);
+  }
+
   async function handleDelete(transactionId) {
     const confirmDelete = window.confirm(
-      "Are you sure you want to delete this transaction?",
+      "Are you sure you want to delete this transaction? This will update your monthly spending.",
     );
     if (!confirmDelete) return;
 
@@ -69,6 +77,41 @@ export default function TransactionsTab() {
     } catch (error) {
       console.error("Error deleting transaction:", error);
       alert("Failed to delete transaction");
+    }
+  }
+
+  async function handleUpdate(updatedTransaction) {
+    try {
+      const user = auth.currentUser;
+
+      const response = await fetch(
+        `http://localhost:5001/api/transactions/${user.uid}/${updatedTransaction.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            amount: updatedTransaction.amount,
+            category: updatedTransaction.category,
+            date: updatedTransaction.date,
+            description: updatedTransaction.description,
+          }),
+        },
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert("Transaction updated successfully!");
+        setIsEditOpen(false);
+        setEditingTransaction(null);
+      } else {
+        alert("Failed to update transaction: " + data.error);
+      }
+    } catch (error) {
+      console.error("Error updating transaction:", error);
+      alert("Failed to update transaction");
     }
   }
 
@@ -103,7 +146,13 @@ export default function TransactionsTab() {
               )}
             </div>
 
-            <div className="ml-4">
+            <div className="ml-4 flex flex-col space-y-2">
+              <button
+                onClick={() => handleEdit(tx)}
+                className="rounded bg-blue-500 px-4 py-2 text-sm text-white transition hover:bg-blue-600"
+              >
+                Edit
+              </button>
               <button
                 onClick={() => handleDelete(tx.id)}
                 className="rounded bg-red-500 px-4 py-2 text-sm text-white transition hover:bg-red-600"
@@ -114,6 +163,18 @@ export default function TransactionsTab() {
           </div>
         </div>
       ))}
+
+      {isEditOpen && editingTransaction && (
+        <EditTransaction
+          isOpen={isEditOpen}
+          transaction={editingTransaction}
+          onClose={() => {
+            setIsEditOpen(false);
+            setEditingTransaction(null);
+          }}
+          onUpdate={handleUpdate}
+        />
+      )}
     </div>
   );
 }
