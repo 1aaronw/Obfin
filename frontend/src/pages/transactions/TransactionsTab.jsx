@@ -21,7 +21,6 @@ export default function TransactionsTab() {
       (snap) => {
         const data = snap.data();
         const transactionMap = data?.spending || {};
-
         const transactionsArray = Object.entries(transactionMap).map(
           ([id, tx]) => ({
             id,
@@ -43,6 +42,36 @@ export default function TransactionsTab() {
 
     return () => unsubscribe(); // Cleanup listener on unmount
   }, []);
+
+  async function handleDelete(transactionId) {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this transaction?",
+    );
+    if (!confirmDelete) return;
+
+    try {
+      const user = auth.currentUser;
+
+      const response = await fetch(
+        `http://localhost:5001/api/transactions/${user.uid}/${transactionId}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert("Transaction deleted successfully!");
+      } else {
+        alert("Failed to delete transaction: " + data.error);
+      }
+    } catch (error) {
+      console.error("Error deleting transaction:", error);
+      alert("Failed to delete transaction");
+    }
+  }
+
   if (loading) {
     return <p>Loading your transactions...</p>;
   }
@@ -55,21 +84,34 @@ export default function TransactionsTab() {
     <div>
       {transactions.map((tx) => (
         <div key={tx.id} className="mb-4 rounded border bg-white p-4 shadow-sm">
-          <p>
-            <strong>Date: </strong>
-            {tx.date}
-          </p>
-          <p>
-            <strong>Category:</strong> {tx.category}
-          </p>
-          <p>
-            <strong>Amount:</strong> ${tx.amount}
-          </p>
-          {tx.description && (
-            <p>
-              <strong>Description:</strong> {tx.description}
-            </p>
-          )}
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <p>
+                <strong>Date: </strong>
+                {tx.date}
+              </p>
+              <p>
+                <strong>Category:</strong> {tx.category}
+              </p>
+              <p>
+                <strong>Amount:</strong> ${tx.amount}
+              </p>
+              {tx.description && (
+                <p>
+                  <strong>Description:</strong> {tx.description}
+                </p>
+              )}
+            </div>
+
+            <div className="ml-4">
+              <button
+                onClick={() => handleDelete(tx.id)}
+                className="rounded bg-red-500 px-4 py-2 text-sm text-white transition hover:bg-red-600"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
         </div>
       ))}
     </div>
