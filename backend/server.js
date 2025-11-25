@@ -7,6 +7,11 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { computeTax } from "./tax/taxEngine.js";
+import {
+  validateChatInput,
+  updateChatRateLimit,
+  estimateInputTokens,
+} from "./utils/chatUtils.js";
 
 //-------setup environment-------
 dotenv.config();
@@ -77,12 +82,14 @@ app.post("/api/gemini/chat", async (request, response) => {
   try {
     const { message, uid } = request.body;
 
-    // ===================== VALIDATION =====================
-    if (!message) {
-      return response.status(400).json({ error: "Message is required." });
-    }
     if (!uid) {
       return response.status(400).json({ error: "User ID (uid) is required." });
+    }
+
+    const trimmedMessage = message.trim();
+    const validation = await validateChatInput(uid, trimmedMessage);
+    if (!validation.valid) {
+      return response.status(400).json({ error: validation.error });
     }
 
     const db = admin.firestore();
@@ -208,7 +215,7 @@ By category:
 ${categorySummaryString}
 
 ================ USER QUESTION ================
-${message}
+${trimmedMessage}
     `;
 
     // ===================== GEMINI REQUEST (JSON) =====================
@@ -220,6 +227,15 @@ ${message}
     const text =
       geminiResponse?.candidates?.[0]?.content?.parts?.[0]?.text ||
       "NO_RESPONSE_FOUND";
+
+    // Log estimated input token cost (Gemini 1.5 Flash: ~$0.075 / 1M input tokens)
+    const inputTokens = estimateInputTokens(contextText);
+    const estInputCost = ((inputTokens / 1000000) * 0.075).toFixed(6);
+    console.log(
+      `Chat UID:${uid} inputTokens:${inputTokens} estInputCost:$${estInputCost}`,
+    );
+
+    await updateChatRateLimit(uid);
 
     // ===================== SEND RESPONSE =====================
     return response.json({

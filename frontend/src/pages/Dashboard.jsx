@@ -203,6 +203,7 @@ function Chatbot() {
             <div className="flex space-x-2">
               <input
                 type="text"
+                maxLength={1000}
                 value={currentMessage}
                 onChange={(e) => setCurrentMessage(e.target.value)}
                 onKeyPress={handleKeyPress}

@@ -143,6 +143,7 @@ export default function AIAdvisor() {
       {/* Input */}
       <div className="mt-4 flex">
         <input
+          maxLength={1000}
           className="flex-1 rounded-l border p-3"
           placeholder="Ask anything about your finances..."
           value={input}
