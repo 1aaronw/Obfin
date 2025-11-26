@@ -6,6 +6,8 @@ export default function AIAdvisor() {
   const [messages, setMessages] = useState([]); // chat messages
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [lastMessageTime, setLastMessageTime] = useState(0);
+  const COOLDOWN_MS = 10000; // 10 seconds
   const recommendedPrompts = [
     "What did I spend most on this month?",
     "Am I overspending in Food?",
@@ -22,10 +24,21 @@ export default function AIAdvisor() {
   }, [messages, loading]);
 
   const sendMessage = async () => {
+    const now = Date.now();
+    if (now - lastMessageTime < COOLDOWN_MS) {
+      const remaining = Math.ceil((COOLDOWN_MS - (now - lastMessageTime)) / 1000);
+      setMessages((prev) => [
+        ...prev,
+        { sender: "error", text: `Please wait ${remaining} second(s) before sending another message.` },
+      ]);
+      return;
+    }
+
     if (!input.trim() || loading) return;
 
-    setErrorMsg("");
+    setLastMessageTime(Date.now());
     setLoading(true);
+    setErrorMsg("");
 
     const userMessage = input.trim();
     setInput("");
@@ -51,7 +64,7 @@ export default function AIAdvisor() {
 
       if (!res.ok) {
         const err = await res.json().catch(() => null);
-        throw new Error(err?.error || "Something went wrong");
+        throw new Error(err?.error || "Something went wrong. " + (err?.message || ""));
       }
 
       const data = await res.json();
@@ -82,7 +95,15 @@ export default function AIAdvisor() {
 
         if (index >= fullText.length) {
           clearInterval(intervalId);
-          setLoading(false);
+          // Keep loading state true until cooldown period has elapsed
+          const elapsed = Date.now() - lastMessageTime;
+          if (elapsed < COOLDOWN_MS) {
+            setTimeout(() => {
+              setLoading(false);
+            }, COOLDOWN_MS - elapsed);
+          } else {
+            setLoading(false);
+          }
         }
       }, INTERVAL_MS);
     } catch (err) {
@@ -102,7 +123,9 @@ export default function AIAdvisor() {
           <div
             key={idx}
             className={`mb-3 max-w-[75%] whitespace-pre-line rounded p-3 ${
-              msg.sender === "user"
+              msg.sender === "error"
+                ? "mr-auto bg-red-100 text-red-800"
+                : msg.sender === "user"
                 ? "ml-auto bg-blue-600 text-white"
                 : "mr-auto bg-gray-200 text-black"
             }`}
@@ -157,6 +180,9 @@ export default function AIAdvisor() {
         >
           Send
         </button>
+      </div>
+      <div className="mt-1 text-xs text-gray-500 text-right">
+        {1000 - input.length}/1000 characters
       </div>
     </div>
   );
