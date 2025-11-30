@@ -24,9 +24,24 @@ function Chatbot() {
   const [currentMessage, setCurrentMessage] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
   const [showChatbot, setShowChatbot] = useState(false);
+  const [lastMessageTime, setLastMessageTime] = useState(0);
+  const COOLDOWN_MS = 10000; // 10 seconds
 
   const sendMessage = async () => {
     if (!currentMessage.trim()) return;
+
+    const now = Date.now();
+    if (now - lastMessageTime < COOLDOWN_MS) {
+      const remaining = Math.ceil((COOLDOWN_MS - (now - lastMessageTime)) / 1000);
+      setMessages((prev) => [
+        ...prev,
+        {
+          type: "error",
+          text: `Please wait ${remaining} second(s) before sending another message.`,
+        },
+      ]);
+      return;
+    }
 
     const userMessage = currentMessage.trim();
     setCurrentMessage("");
@@ -90,6 +105,7 @@ function Chatbot() {
     }
 
     setChatLoading(false);
+    setLastMessageTime(Date.now());
   };
 
   const handleKeyPress = (e) => {
@@ -203,6 +219,7 @@ function Chatbot() {
             <div className="flex space-x-2">
               <input
                 type="text"
+                maxLength={1000}
                 value={currentMessage}
                 onChange={(e) => setCurrentMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
@@ -229,6 +246,9 @@ function Chatbot() {
                   />
                 </svg>
               </button>
+            </div>
+            <div className="px-4 pb-2 text-xs text-gray-500 text-right">
+              {1000 - currentMessage.length}/1000 characters
             </div>
           </div>
         </div>
