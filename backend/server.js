@@ -377,6 +377,166 @@ app.post("/api/tax/calculate", (req, res) => {
   }
 });
 
+// Transaction management
+app.put("/api/transactions/:uid/:transactionId", async (req, res) => {
+  try {
+    const { uid, transactionId } = req.params;
+    const { amount, category, description, date } = req.body;
+
+    console.log("Update request received:", {
+      uid,
+      transactionId,
+      body: req.body,
+    });
+
+    if (!uid || !transactionId) {
+      return res
+        .status(400)
+        .json({ error: "User ID and Transaction ID are required" });
+    }
+
+    const db = admin.firestore();
+    const userRef = db.collection("users").doc(uid);
+    const userDoc = await userRef.get();
+
+    if (!userDoc.exists) {
+      console.log("User not found:", uid);
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const userData = userDoc.data();
+    const oldTransaction = userData.spending?.[transactionId];
+
+    if (!oldTransaction) {
+      console.log("Transaction not found:", transactionId);
+      console.log(
+        "Available transactions:",
+        Object.keys(userData.spending || {}),
+      );
+      return res.status(404).json({ error: "Transaction not found" });
+    }
+
+    console.log("Old transaction:", oldTransaction);
+
+    // Calculate monthly trend adjustments
+    const oldMonth = oldTransaction.date.substring(5, 7);
+    const oldYear = oldTransaction.date.substring(0, 4);
+    const oldYearMonth = `${oldYear}-${oldMonth}`;
+
+    const newMonth = date.substring(5, 7);
+    const newYear = date.substring(0, 4);
+    const newYearMonth = `${newYear}-${newMonth}`;
+
+    const oldAmount = Number(oldTransaction.amount);
+    const newAmount = Number(amount);
+
+    // Prepare update object
+    const updates = {
+      [`spending.${transactionId}`]: {
+        amount: newAmount,
+        category: category,
+        date: date,
+        description: description,
+        createdAt: oldTransaction.createdAt || Date.now(), // Preserve createdAt
+      },
+    };
+
+    // Update monthly trends
+    if (oldYearMonth === newYearMonth) {
+      // Same month - adjust by difference
+      updates[`monthlyTrends.${oldYearMonth}`] =
+        admin.firestore.FieldValue.increment(newAmount - oldAmount);
+    } else {
+      // Different month - subtract from old, add to new
+      updates[`monthlyTrends.${oldYearMonth}`] =
+        admin.firestore.FieldValue.increment(-oldAmount);
+      updates[`monthlyTrends.${newYearMonth}`] =
+        admin.firestore.FieldValue.increment(newAmount);
+    }
+
+    console.log("Applying updates:", updates);
+
+    await userRef.update(updates);
+
+    console.log("Transaction updated successfully");
+
+    res.json({
+      success: true,
+      message: "Transaction updated successfully",
+      transactionId,
+    });
+  } catch (error) {
+    console.error("Error updating transaction:", error);
+    res
+      .status(500)
+      .json({ error: "Failed to update transaction", details: error.message });
+  }
+});
+
+// Delete a transaction from the nested spending map structure
+app.delete("/api/transactions/:uid/:transactionId", async (req, res) => {
+  try {
+    const { uid, transactionId } = req.params;
+
+    console.log("Delete request received:", { uid, transactionId });
+
+    if (!uid || !transactionId) {
+      return res
+        .status(400)
+        .json({ error: "User ID and Transaction ID are required" });
+    }
+
+    const db = admin.firestore();
+    const userRef = db.collection("users").doc(uid);
+    const userDoc = await userRef.get();
+
+    if (!userDoc.exists) {
+      console.log("User not found:", uid);
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const userData = userDoc.data();
+    const transaction = userData.spending?.[transactionId];
+
+    if (!transaction) {
+      console.log("Transaction not found:", transactionId);
+      console.log(
+        "Available transactions:",
+        Object.keys(userData.spending || {}),
+      );
+      return res.status(404).json({ error: "Transaction not found" });
+    }
+
+    console.log("Deleting transaction:", transaction);
+
+    // Extract year-month for monthly trends
+    const month = transaction.date.substring(5, 7);
+    const year = transaction.date.substring(0, 4);
+    const yearMonth = `${year}-${month}`;
+    const amount = Number(transaction.amount);
+
+    // Delete transaction and update monthly trend
+    await userRef.update({
+      [`spending.${transactionId}`]: admin.firestore.FieldValue.delete(),
+      [`monthlyTrends.${yearMonth}`]:
+        admin.firestore.FieldValue.increment(-amount),
+    });
+
+    console.log("Transaction deleted successfully");
+
+    res.json({
+      success: true,
+      message: "Transaction deleted successfully",
+      transactionId,
+    });
+  } catch (error) {
+    console.error("Error deleting transaction:", error);
+    res
+      .status(500)
+      .json({ error: "Failed to delete transaction", details: error.message });
+  }
+});
+
 // 404 handler (for unknown routes)
 app.use((req, res) => {
   res.status(404).json({ error: "Not Found" });
