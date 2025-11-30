@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import FinanceSettings from "../components/settings/FinanceSettings";
 import ProfileSettings from "../components/settings/ProfileSettings";
 
@@ -12,7 +12,7 @@ export default function Settings() {
   const user = auth.currentUser;
 
   // Fetch User Data
-  const loadUser = async () => {
+  const loadUser = useCallback(async () => {
     if (!user) return;
     setLoading(true);
 
@@ -28,18 +28,19 @@ export default function Settings() {
     }
 
     setLoading(false);
-  };
+  }, [user]);
 
   useEffect(() => {
     loadUser();
-  }, [user]);
+  }, [loadUser]);
 
-  if (loading || !userData) return (
-    <div className="p-6 max-w-3xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">Settings</h1>
-      <p>Loading settings…</p>
-    </div>
-  );
+  if (loading || !userData)
+    return (
+      <div className="p-6 max-w-3xl mx-auto">
+        <h1 className="text-3xl font-bold mb-6">Settings</h1>
+        <p>Loading settings…</p>
+      </div>
+    );
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
@@ -64,11 +65,11 @@ export default function Settings() {
 
       {/* Tab content */}
       {activeTab === "profile" && (
-        <ProfileSettings userData={userData} reload={() => loadUser()} />
+        <ProfileSettings userData={userData} reload={loadUser} />
       )}
 
       {activeTab === "finance" && (
-        <FinanceSettings userData={userData} reload={() => loadUser()} />
+        <FinanceSettings userData={userData} reload={loadUser} />
       )}
     </div>
   );
