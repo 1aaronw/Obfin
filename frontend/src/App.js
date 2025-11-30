@@ -4,6 +4,7 @@ import AIAdvisor from "./pages/AIAdvisor";
 import Dashboard from "./pages/Dashboard";
 import FirstTimeUser from "./pages/FirstTimeUser";
 import Login from "./pages/Login";
+import Settings from "./pages/Settings";
 import TaxCalculator from "./pages/TaxCalculator";
 import Transactions from "./pages/Transactions";
 
@@ -22,6 +23,7 @@ function App() {
           <Route path="transactions" element={<Transactions />} />
           <Route path="advisor" element={<AIAdvisor />} />
           <Route path="tax-calculator" element={<TaxCalculator />} />
+           <Route path="/settings" element={<Settings />} />
           {/* You’ll add more pages here later */}
         </Route>
       </Routes>
