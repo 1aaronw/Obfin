@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import DangerZone from "../components/settings/DangerZone";
 import FinanceSettings from "../components/settings/FinanceSettings";
 import ProfileSettings from "../components/settings/ProfileSettings";
 
@@ -61,17 +60,6 @@ export default function Settings() {
         >
           Finance
         </button>
-
-        <button
-          className={
-            activeTab === "danger"
-              ? "font-bold text-red-600"
-              : "text-red-500"
-          }
-          onClick={() => setActiveTab("danger")}
-        >
-          Danger Zone
-        </button>
       </div>
 
       {/* Tab content */}
@@ -82,8 +70,6 @@ export default function Settings() {
       {activeTab === "finance" && (
         <FinanceSettings userData={userData} reload={() => loadUser()} />
       )}
-
-      {activeTab === "danger" && <DangerZone />}
     </div>
   );
 }

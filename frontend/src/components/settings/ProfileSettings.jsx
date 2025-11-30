@@ -1,7 +1,19 @@
 // src/components/settings/ProfileSettings.jsx
 import { updateEmail, updateProfile } from "firebase/auth";
-import { doc, updateDoc } from "firebase/firestore";
-import { deleteObject, getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import {
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  updateDoc,
+  writeBatch,
+} from "firebase/firestore";
+import {
+  deleteObject,
+  getDownloadURL,
+  ref,
+  uploadBytes,
+} from "firebase/storage";
 import { useEffect, useState } from "react";
 import { auth, db, storage } from "../../firebase/firebase";
 
@@ -14,6 +26,7 @@ export default function ProfileSettings({ userData }) {
 
   const defaultAvatar = "https://i.imgur.com/6VBx3io.png";
 
+  // LOAD USER DATA
   useEffect(() => {
     const user = auth.currentUser;
     if (!user || !userData) return;
@@ -26,6 +39,7 @@ export default function ProfileSettings({ userData }) {
     setPhotoURL(authPhoto || firestorePhoto || null);
   }, [userData]);
 
+  // UPLOAD FROM DEVICE
   const handleUpload = async (e) => {
     const file = e.target.files[0];
     const user = auth.currentUser;
@@ -55,29 +69,26 @@ export default function ProfileSettings({ userData }) {
     }
   };
 
+  // USE URL
   const handleUseUrl = async () => {
     const user = auth.currentUser;
     const url = externalUrl.trim();
-
-    if (!user || !url) {
-      alert("Please enter a valid URL.");
-      return;
-    }
+    if (!user || !url) return alert("Enter a valid URL.");
 
     try {
       await updateProfile(user, { photoURL: url });
 
-      const userRef = doc(db, "users", user.uid);
-      await updateDoc(userRef, { photoURL: url });
+      await updateDoc(doc(db, "users", user.uid), { photoURL: url });
 
       setPhotoURL(url);
-      alert("Profile picture updated from URL!");
+      alert("Profile picture updated via URL!");
     } catch (err) {
-      console.error("URL photo error:", err);
-      alert("Failed to set picture from URL.");
+      console.error(err);
+      alert("Failed to update picture from URL.");
     }
   };
 
+  // REMOVE PICTURE
   const handleRemovePicture = async () => {
     const user = auth.currentUser;
     if (!user) return;
@@ -87,24 +98,21 @@ export default function ProfileSettings({ userData }) {
       await deleteObject(storageRef).catch(() => {});
 
       await updateProfile(user, { photoURL: "" });
-
-      const userRef = doc(db, "users", user.uid);
-      await updateDoc(userRef, { photoURL: "" });
+      await updateDoc(doc(db, "users", user.uid), { photoURL: "" });
 
       setPhotoURL(null);
       setExternalUrl("");
       alert("Profile picture removed!");
     } catch (err) {
-      console.error("Remove error:", err);
+      console.error(err);
       alert("Failed to remove picture.");
     }
   };
 
+  // SAVE CHANGES
   const handleSave = async () => {
     const user = auth.currentUser;
     if (!user) return;
-
-    const userRef = doc(db, "users", user.uid);
 
     try {
       if (displayName !== user.displayName) {
@@ -115,16 +123,61 @@ export default function ProfileSettings({ userData }) {
         await updateEmail(user, email);
       }
 
-      // Removed: state update
-      await updateDoc(userRef, {
+      await updateDoc(doc(db, "users", user.uid), {
         displayName,
         email,
       });
 
-      alert("Profile updated successfully!");
+      alert("Profile updated!");
     } catch (err) {
-      console.error("Save error:", err);
-      alert("Failed to save profile changes.");
+      console.error(err);
+      alert("Failed to update profile.");
+    }
+  };
+
+  // DELETE ACCOUNT (FULL)
+  const handleDeleteAccount = async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const confirmDelete = window.confirm(
+      "Are you absolutely sure? This will permanently delete your entire account and ALL data. This cannot be undone."
+    );
+
+    if (!confirmDelete) return;
+
+    try {
+      const uid = user.uid;
+
+      // 1. Delete profile picture from storage
+      const picRef = ref(storage, `profilePictures/${uid}`);
+      await deleteObject(picRef).catch(() => {});
+
+      // 2. Delete subcollections (transactions, taxCalculations, alerts)
+      const subcollections = ["transactions", "taxCalculations", "alerts"];
+
+      for (let sub of subcollections) {
+        const colRef = collection(db, "users", uid, sub);
+        const snapshot = await getDocs(colRef);
+
+        const batch = writeBatch(db);
+        snapshot.forEach((doc) => batch.delete(doc.ref));
+        await batch.commit();
+      }
+
+      // 3. Delete user document
+      await deleteDoc(doc(db, "users", uid));
+
+      // 4. Delete Firebase Auth user
+      await user.delete();
+
+      // 5. Redirect
+      window.location.href = "/login";
+    } catch (err) {
+      console.error("Delete account error:", err);
+      alert(
+        "Failed to delete account. You might need to re-login and try again."
+      );
     }
   };
 
@@ -133,10 +186,11 @@ export default function ProfileSettings({ userData }) {
       <h2 className="text-2xl font-semibold text-gray-900">Profile</h2>
 
       <div className="bg-white rounded-xl shadow-md border p-6 space-y-8">
-
-        {/* Profile Picture Section */}
+        {/* Profile Picture */}
         <div className="space-y-4">
-          <h3 className="text-lg font-medium text-gray-800">Profile Picture</h3>
+          <h3 className="text-lg font-medium text-gray-800">
+            Profile Picture
+          </h3>
 
           <div className="flex items-center gap-6">
             <img
@@ -187,10 +241,12 @@ export default function ProfileSettings({ userData }) {
 
         <hr />
 
-        {/* Info Section */}
+        {/* Display Name & Email */}
         <div className="space-y-5">
           <div>
-            <label className="text-sm font-medium text-gray-700">Display Name</label>
+            <label className="text-sm font-medium text-gray-700">
+              Display Name
+            </label>
             <input
               className="border p-2 w-full rounded-lg focus:ring focus:ring-blue-200 mt-1"
               value={displayName}
@@ -199,7 +255,9 @@ export default function ProfileSettings({ userData }) {
           </div>
 
           <div>
-            <label className="text-sm font-medium text-gray-700">Email</label>
+            <label className="text-sm font-medium text-gray-700">
+              Email
+            </label>
             <input
               className="border p-2 w-full rounded-lg focus:ring focus:ring-blue-200 mt-1"
               value={email}
@@ -214,6 +272,26 @@ export default function ProfileSettings({ userData }) {
         >
           Save Changes
         </button>
+
+        {/* DELETE ACCOUNT */}
+        <hr className="my-6" />
+
+        <div className="bg-red-50 border border-red-200 rounded-xl p-5">
+          <h3 className="text-lg font-semibold text-red-700 mb-2">
+            Delete Account
+          </h3>
+          <p className="text-sm text-red-600 mb-4">
+            This will permanently delete your account and ALL data. This cannot
+            be undone.
+          </p>
+
+          <button
+            onClick={handleDeleteAccount}
+            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
+          >
+            Delete My Account
+          </button>
+        </div>
       </div>
     </div>
   );
