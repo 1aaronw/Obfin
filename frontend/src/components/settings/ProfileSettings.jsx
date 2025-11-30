@@ -1,5 +1,5 @@
 // src/components/settings/ProfileSettings.jsx
-import { updateEmail, updateProfile } from "firebase/auth";
+import { updateProfile } from "firebase/auth";
 import {
   collection,
   deleteDoc,
@@ -19,7 +19,7 @@ import { auth, db, storage } from "../../firebase/firebase";
 
 export default function ProfileSettings({ userData }) {
   const [displayName, setDisplayName] = useState("");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(""); // now read-only
   const [photoURL, setPhotoURL] = useState(null);
   const [externalUrl, setExternalUrl] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -54,8 +54,7 @@ export default function ProfileSettings({ userData }) {
 
       await updateProfile(user, { photoURL: url });
 
-      const userRef = doc(db, "users", user.uid);
-      await updateDoc(userRef, { photoURL: url });
+      await updateDoc(doc(db, "users", user.uid), { photoURL: url });
 
       setPhotoURL(url);
       setExternalUrl("");
@@ -77,9 +76,7 @@ export default function ProfileSettings({ userData }) {
 
     try {
       await updateProfile(user, { photoURL: url });
-
       await updateDoc(doc(db, "users", user.uid), { photoURL: url });
-
       setPhotoURL(url);
       alert("Profile picture updated via URL!");
     } catch (err) {
@@ -109,7 +106,7 @@ export default function ProfileSettings({ userData }) {
     }
   };
 
-  // SAVE CHANGES
+  // SAVE (Display Name ONLY)
   const handleSave = async () => {
     const user = auth.currentUser;
     if (!user) return;
@@ -119,13 +116,8 @@ export default function ProfileSettings({ userData }) {
         await updateProfile(user, { displayName });
       }
 
-      if (email !== user.email) {
-        await updateEmail(user, email);
-      }
-
       await updateDoc(doc(db, "users", user.uid), {
         displayName,
-        email,
       });
 
       alert("Profile updated!");
@@ -135,7 +127,7 @@ export default function ProfileSettings({ userData }) {
     }
   };
 
-  // DELETE ACCOUNT (FULL)
+  // DELETE ACCOUNT
   const handleDeleteAccount = async () => {
     const user = auth.currentUser;
     if (!user) return;
@@ -149,35 +141,30 @@ export default function ProfileSettings({ userData }) {
     try {
       const uid = user.uid;
 
-      // 1. Delete profile picture from storage
+      // Delete profile picture
       const picRef = ref(storage, `profilePictures/${uid}`);
       await deleteObject(picRef).catch(() => {});
 
-      // 2. Delete subcollections (transactions, taxCalculations, alerts)
+      // Delete all subcollections
       const subcollections = ["transactions", "taxCalculations", "alerts"];
-
       for (let sub of subcollections) {
         const colRef = collection(db, "users", uid, sub);
         const snapshot = await getDocs(colRef);
-
         const batch = writeBatch(db);
         snapshot.forEach((doc) => batch.delete(doc.ref));
         await batch.commit();
       }
 
-      // 3. Delete user document
+      // Delete user doc
       await deleteDoc(doc(db, "users", uid));
 
-      // 4. Delete Firebase Auth user
+      // Delete auth user
       await user.delete();
 
-      // 5. Redirect
       window.location.href = "/login";
     } catch (err) {
       console.error("Delete account error:", err);
-      alert(
-        "Failed to delete account. You might need to re-login and try again."
-      );
+      alert("Failed to delete account. You may need to re-login.");
     }
   };
 
@@ -186,6 +173,7 @@ export default function ProfileSettings({ userData }) {
       <h2 className="text-2xl font-semibold text-gray-900">Profile</h2>
 
       <div className="bg-white rounded-xl shadow-md border p-6 space-y-8">
+
         {/* Profile Picture */}
         <div className="space-y-4">
           <h3 className="text-lg font-medium text-gray-800">
@@ -241,7 +229,7 @@ export default function ProfileSettings({ userData }) {
 
         <hr />
 
-        {/* Display Name & Email */}
+        {/* Display Name + Email (read-only) */}
         <div className="space-y-5">
           <div>
             <label className="text-sm font-medium text-gray-700">
@@ -256,13 +244,16 @@ export default function ProfileSettings({ userData }) {
 
           <div>
             <label className="text-sm font-medium text-gray-700">
-              Email
+              Email (managed by Google)
             </label>
             <input
-              className="border p-2 w-full rounded-lg focus:ring focus:ring-blue-200 mt-1"
+              className="border p-2 w-full rounded-lg bg-gray-100 cursor-not-allowed mt-1"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              readOnly
             />
+            <p className="text-xs text-gray-500 mt-1">
+              Email is controlled by Google Sign-In and cannot be changed.
+            </p>
           </div>
         </div>
 
