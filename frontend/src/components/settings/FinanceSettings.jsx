@@ -7,7 +7,9 @@ export default function FinanceSettings({ userData }) {
   const user = auth.currentUser;
   const budgets = userData?.budgets || {};
 
-  // --- Load existing values ---
+  /* -----------------------------
+      1. BASIC FIELDS
+  ------------------------------*/
   const [annualIncome, setAnnualIncome] = useState(budgets.annualIncome || "");
   const [state, setState] = useState(budgets.state || "CA");
 
@@ -16,24 +18,43 @@ export default function FinanceSettings({ userData }) {
   );
   const [manualMonthlyOverride, setManualMonthlyOverride] = useState(false);
 
-  // Savings goals
   const [monthlySavingsGoal, setMonthlySavingsGoal] = useState(
     budgets.monthlySavingsGoal || ""
   );
-
   const annualSavingsGoal = Number(monthlySavingsGoal || 0) * 12;
-
-  const [categories, setCategories] = useState({
-    food: budgets.food || "",
-    entertainment: budgets.entertainment || "",
-    insurance: budgets.insurance || "",
-    utilities: budgets.utilities || "",
-    miscellaneous: budgets.miscellaneous || "",
-  });
 
   const num = (v) => (isNaN(parseFloat(v)) ? 0 : parseFloat(v));
 
-  // --- Auto-calc monthly income when annual income or state changes ---
+  /* -----------------------------
+      2. CATEGORY MIGRATION
+  ------------------------------*/
+
+  const migrateOldCategories = () => {
+    const oldKeys = ["food", "entertainment", "insurance", "utilities", "miscellaneous"];
+
+    const isOld = oldKeys.some((k) => budgets[k] !== undefined);
+
+    if (!isOld) return budgets.categories || [];
+
+    return oldKeys
+      .filter((k) => budgets[k] !== undefined)
+      .map((k) => ({
+        id: k,
+        name: k.charAt(0).toUpperCase() + k.slice(1),
+        amount: budgets[k] || 0,
+      }));
+  };
+
+  const [categories, setCategories] = useState(migrateOldCategories);
+
+  /* -----------------------------
+      3. COLLAPSIBLE SECTIONS
+  ------------------------------*/
+  const [categoriesOpen, setCategoriesOpen] = useState(true);
+
+  /* -----------------------------
+      4. AUTO-CALC MONTHLY INCOME
+  ------------------------------*/
   useEffect(() => {
     if (!annualIncome || manualMonthlyOverride) return;
 
@@ -61,8 +82,52 @@ export default function FinanceSettings({ userData }) {
     fetchMonthlyIncome();
   }, [annualIncome, state, manualMonthlyOverride]);
 
-  // --- Summary ---
-  const total = Object.values(categories).reduce((sum, v) => sum + num(v), 0);
+  /* -----------------------------
+      5. CATEGORY CRUD FUNCTIONS
+  ------------------------------*/
+  const addCategory = () => {
+    const name = prompt("Enter category name:");
+    if (!name) return;
+
+    const id = name.toLowerCase().replace(/\s+/g, "-");
+
+    setCategories((prev) => [
+      ...prev,
+      { id, name, amount: 0 },
+    ]);
+  };
+
+  const renameCategory = (id) => {
+    const name = prompt("New name:");
+    if (!name) return;
+
+    setCategories((prev) =>
+      prev.map((cat) => (cat.id === id ? { ...cat, name } : cat))
+    );
+  };
+
+  const deleteCategory = (id) => {
+    if (categories.length === 1)
+      return alert("You must keep at least one category.");
+
+    const confirmDelete = window.confirm("Delete this category?");
+    if (!confirmDelete) return;
+
+    setCategories((prev) => prev.filter((cat) => cat.id !== id));
+  };
+
+  const updateCategoryAmount = (id, value) => {
+    setCategories((prev) =>
+      prev.map((cat) =>
+        cat.id === id ? { ...cat, amount: Number(value) || "" } : cat
+      )
+    );
+  };
+
+  /* -----------------------------
+      6. SUMMARY
+  ------------------------------*/
+  const total = categories.reduce((sum, c) => sum + num(c.amount), 0);
   const income = num(monthlyIncome);
   const percent = income > 0 ? (total / income) * 100 : 0;
 
@@ -73,41 +138,22 @@ export default function FinanceSettings({ userData }) {
     else summaryColor = "text-red-600";
   }
 
-  const handleChange = (key, value) => {
-    setCategories((prev) => ({
-      ...prev,
-      [key]: value === "" ? "" : Number(value),
-    }));
-  };
-
-  const handleReset = () => {
-    setCategories({
-      food: "",
-      entertainment: "",
-      insurance: "",
-      utilities: "",
-      miscellaneous: "",
-    });
-  };
-
-  // --- Save to Firestore ---
+  /* -----------------------------
+      7. SAVE TO FIRESTORE
+  ------------------------------*/
   const handleSave = async () => {
     if (!user) return alert("Not logged in.");
 
-    try {
-      const userRef = doc(db, "users", user.uid);
+    const userRef = doc(db, "users", user.uid);
 
+    try {
       await updateDoc(userRef, {
         budgets: {
           annualIncome: num(annualIncome),
           monthlyIncome: num(monthlyIncome),
           state,
           monthlySavingsGoal: num(monthlySavingsGoal),
-
-          // categories
-          ...Object.fromEntries(
-            Object.entries(categories).map(([k, v]) => [k, num(v)])
-          ),
+          categories,
         },
       });
 
@@ -118,19 +164,85 @@ export default function FinanceSettings({ userData }) {
     }
   };
 
+  /* -----------------------------------------
+      8. COMPONENT: Individual Category Card
+  -------------------------------------------*/
+  function CategoryCard({ cat }) {
+    const [collapsed, setCollapsed] = useState(false);
+
+    return (
+      <div className="border rounded-lg p-4 bg-gray-50 shadow-sm">
+
+        {/* Header Row */}
+        <div
+          className="flex justify-between items-center cursor-pointer"
+          onClick={() => setCollapsed(!collapsed)}
+        >
+          <h4 className="font-medium">{cat.name}</h4>
+
+          <div className="flex items-center gap-4">
+            <span className="text-xs text-gray-500">
+              {collapsed ? "Show ▼" : "Hide ▲"}
+            </span>
+
+            <div className="flex gap-3 text-sm">
+              <button
+                className="text-blue-600 underline"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  renameCategory(cat.id);
+                }}
+              >
+                Rename
+              </button>
+
+              <button
+                disabled={categories.length === 1}
+                className={`underline ${
+                  categories.length === 1
+                    ? "text-gray-400 cursor-not-allowed"
+                    : "text-red-600 hover:text-red-700"
+                }`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteCategory(cat.id);
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Collapsible Content */}
+        {!collapsed && (
+          <div className="mt-3">
+            <label className="text-sm">Budget Amount ($)</label>
+            <input
+              type="number"
+              className="border p-2 w-full rounded"
+              value={cat.amount}
+              onChange={(e) => updateCategoryAmount(cat.id, e.target.value)}
+            />
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  /* -----------------------------
+      9. UI BELOW (FULL)
+  ------------------------------*/
   return (
     <div className="space-y-6 max-w-xl">
       <h2 className="text-xl font-semibold">Finance Settings</h2>
 
-      {/* Income Section */}
+      {/* Income Box */}
       <div className="border rounded-lg p-4 shadow-sm bg-white space-y-4">
-        
-        {/* Annual Income */}
         <div>
           <label className="font-medium text-sm">Annual Income ($)</label>
           <input
             type="number"
-            placeholder="e.g. 60000"
             className="border p-2 w-full rounded"
             value={annualIncome}
             onChange={(e) => {
@@ -140,7 +252,6 @@ export default function FinanceSettings({ userData }) {
           />
         </div>
 
-        {/* State Selection */}
         <div>
           <label className="font-medium text-sm">State</label>
           <select
@@ -162,12 +273,11 @@ export default function FinanceSettings({ userData }) {
           </select>
         </div>
 
-        {/* Monthly Income */}
         <div>
           <label className="font-medium text-sm">
             Monthly Net Income ($)
             {manualMonthlyOverride && (
-              <span className="ml-2 text-xs text-blue-600">(manual override)</span>
+              <span className="ml-2 text-xs text-blue-600">(manual)</span>
             )}
           </label>
           <input
@@ -181,19 +291,16 @@ export default function FinanceSettings({ userData }) {
           />
         </div>
 
-        {/* Monthly Savings Goal */}
         <div>
           <label className="font-medium text-sm">Monthly Savings Goal ($)</label>
           <input
             type="number"
-            placeholder="e.g. 500"
             className="border p-2 w-full rounded"
             value={monthlySavingsGoal}
             onChange={(e) => setMonthlySavingsGoal(e.target.value)}
           />
         </div>
 
-        {/* Annual Savings Goal (Auto) */}
         <div>
           <label className="font-medium text-sm">Annual Savings Goal ($)</label>
           <input
@@ -205,50 +312,46 @@ export default function FinanceSettings({ userData }) {
         </div>
       </div>
 
-      {/* Categories */}
+      {/* Categories Box */}
       <div className="border rounded-lg p-4 shadow-sm bg-white space-y-4">
-        <div className="flex justify-between items-center">
+
+        {/* Collapse All Header */}
+        <div
+          className="flex justify-between items-center cursor-pointer"
+          onClick={() => setCategoriesOpen(!categoriesOpen)}
+        >
           <h3 className="font-semibold">Budget Categories</h3>
-          <button
-            className="text-gray-500 text-sm underline"
-            onClick={handleReset}
-          >
-            Reset
-          </button>
+          <span className="text-sm text-gray-500">
+            {categoriesOpen ? "Hide ▲" : "Show ▼"}
+          </span>
         </div>
 
-        {Object.keys(categories).map((key) => (
-          <div key={key}>
-            <label className="capitalize font-medium text-sm">{key}</label>
-            <input
-              type="number"
-              className="border p-2 w-full rounded"
-              value={categories[key]}
-              onChange={(e) => handleChange(key, e.target.value)}
-              placeholder={`Amount for ${key}`}
-            />
-          </div>
-        ))}
+        {categoriesOpen && (
+          <>
+            <button
+              onClick={addCategory}
+              className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition"
+            >
+              + Add Category
+            </button>
 
-        {/* Summary */}
-        <div className="pt-2">
-          <p className={`font-medium ${summaryColor}`}>
-            Total Budget: <strong>${total.toFixed(2)}</strong>
-            {income > 0 && (
-              <>
-                {" "}
-                — {percent.toFixed(1)}% of your income (${income})
-              </>
-            )}
-          </p>
+            <div className="space-y-4">
+              {categories.map((cat) => (
+                <CategoryCard key={cat.id} cat={cat} />
+              ))}
+            </div>
 
-          {income > 0 && percent > 110 && (
-            <p className="text-xs text-red-500 mt-1">
-              Your total budget exceeds your income — consider adjusting some
-              categories.
-            </p>
-          )}
-        </div>
+            {/* Summary */}
+            <div className="pt-2">
+              <p className={`font-medium ${summaryColor}`}>
+                Total Budget: <strong>${total.toFixed(2)}</strong>
+                {income > 0 && (
+                  <> — {percent.toFixed(1)}% of your income (${income})</>
+                )}
+              </p>
+            </div>
+          </>
+        )}
       </div>
 
       <button
