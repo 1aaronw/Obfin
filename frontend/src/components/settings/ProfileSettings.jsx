@@ -133,7 +133,7 @@ export default function ProfileSettings({ userData }) {
     if (!user) return;
 
     const confirmDelete = window.confirm(
-      "Are you absolutely sure? This will permanently delete your entire account and ALL data. This cannot be undone."
+      "Are you absolutely sure? This will permanently delete your entire account and ALL data. This cannot be undone.",
     );
 
     if (!confirmDelete) return;
@@ -169,26 +169,23 @@ export default function ProfileSettings({ userData }) {
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8 p-6">
+    <div className="mx-auto max-w-3xl space-y-8 p-6">
       <h2 className="text-2xl font-semibold text-gray-900">Profile</h2>
 
-      <div className="bg-white rounded-xl shadow-md border p-6 space-y-8">
-
+      <div className="space-y-8 rounded-xl border bg-white p-6 shadow-md">
         {/* Profile Picture */}
         <div className="space-y-4">
-          <h3 className="text-lg font-medium text-gray-800">
-            Profile Picture
-          </h3>
+          <h3 className="text-lg font-medium text-gray-800">Profile Picture</h3>
 
           <div className="flex items-center gap-6">
             <img
               src={photoURL || defaultAvatar}
               alt="avatar"
-              className="w-28 h-28 rounded-full object-cover border shadow"
+              className="h-28 w-28 rounded-full border object-cover shadow"
             />
 
             <div className="space-y-3">
-              <label className="cursor-pointer bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+              <label className="cursor-pointer rounded-lg bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700">
                 <input
                   type="file"
                   accept="image/*"
@@ -199,16 +196,16 @@ export default function ProfileSettings({ userData }) {
                 {uploading ? "Uploading..." : "Upload Photo"}
               </label>
 
-              <div className="flex gap-2 items-center">
+              <div className="flex items-center gap-2">
                 <input
                   type="text"
                   placeholder="Paste image URL..."
-                  className="border rounded-lg p-2 w-60 focus:ring focus:ring-blue-200"
+                  className="w-60 rounded-lg border p-2 focus:ring focus:ring-blue-200"
                   value={externalUrl}
                   onChange={(e) => setExternalUrl(e.target.value)}
                 />
                 <button
-                  className="px-3 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition text-sm"
+                  className="rounded-lg bg-gray-200 px-3 py-2 text-sm transition hover:bg-gray-300"
                   onClick={handleUseUrl}
                 >
                   Use URL
@@ -217,7 +214,7 @@ export default function ProfileSettings({ userData }) {
 
               {photoURL && (
                 <button
-                  className="text-red-500 underline text-sm"
+                  className="text-sm text-red-500 underline"
                   onClick={handleRemovePicture}
                 >
                   Remove photo
@@ -236,7 +233,7 @@ export default function ProfileSettings({ userData }) {
               Display Name
             </label>
             <input
-              className="border p-2 w-full rounded-lg focus:ring focus:ring-blue-200 mt-1"
+              className="mt-1 w-full rounded-lg border p-2 focus:ring focus:ring-blue-200"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
             />
@@ -247,18 +244,18 @@ export default function ProfileSettings({ userData }) {
               Email (managed by Google)
             </label>
             <input
-              className="border p-2 w-full rounded-lg bg-gray-100 cursor-not-allowed mt-1"
+              className="mt-1 w-full cursor-not-allowed rounded-lg border bg-gray-100 p-2"
               value={email}
               readOnly
             />
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="mt-1 text-xs text-gray-500">
               Email is controlled by Google Sign-In and cannot be changed.
             </p>
           </div>
         </div>
 
         <button
-          className="bg-blue-600 text-white px-5 py-2 rounded-lg shadow hover:bg-blue-700 transition"
+          className="rounded-lg bg-blue-600 px-5 py-2 text-white shadow transition hover:bg-blue-700"
           onClick={handleSave}
         >
           Save Changes
@@ -267,18 +264,18 @@ export default function ProfileSettings({ userData }) {
         {/* DELETE ACCOUNT */}
         <hr className="my-6" />
 
-        <div className="bg-red-50 border border-red-200 rounded-xl p-5">
-          <h3 className="text-lg font-semibold text-red-700 mb-2">
+        <div className="rounded-xl border border-red-200 bg-red-50 p-5">
+          <h3 className="mb-2 text-lg font-semibold text-red-700">
             Delete Account
           </h3>
-          <p className="text-sm text-red-600 mb-4">
+          <p className="mb-4 text-sm text-red-600">
             This will permanently delete your account and ALL data. This cannot
             be undone.
           </p>
 
           <button
             onClick={handleDeleteAccount}
-            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
+            className="rounded-lg bg-red-600 px-4 py-2 text-white transition hover:bg-red-700"
           >
             Delete My Account
           </button>

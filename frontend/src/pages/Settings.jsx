@@ -36,18 +36,18 @@ export default function Settings() {
 
   if (loading || !userData)
     return (
-      <div className="p-6 max-w-3xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6">Settings</h1>
+      <div className="mx-auto max-w-3xl p-6">
+        <h1 className="mb-6 text-3xl font-bold">Settings</h1>
         <p>Loading settings…</p>
       </div>
     );
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">Settings</h1>
+    <div className="mx-auto max-w-3xl p-6">
+      <h1 className="mb-6 text-3xl font-bold">Settings</h1>
 
       {/* Tabs */}
-      <div className="flex gap-6 border-b pb-2 mb-6 text-lg">
+      <div className="mb-6 flex gap-6 border-b pb-2 text-lg">
         <button
           className={activeTab === "profile" ? "font-bold text-blue-600" : ""}
           onClick={() => setActiveTab("profile")}

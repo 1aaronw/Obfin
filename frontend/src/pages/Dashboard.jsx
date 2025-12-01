@@ -17,6 +17,7 @@ import {
   YAxis,
 } from "recharts";
 import { auth } from "../firebase/firebase";
+import "../animation.css";
 
 // separate chat box component to prevent re-renders to charts
 function Chatbot() {
@@ -32,7 +33,9 @@ function Chatbot() {
 
     const now = Date.now();
     if (now - lastMessageTime < COOLDOWN_MS) {
-      const remaining = Math.ceil((COOLDOWN_MS - (now - lastMessageTime)) / 1000);
+      const remaining = Math.ceil(
+        (COOLDOWN_MS - (now - lastMessageTime)) / 1000,
+      );
       setMessages((prev) => [
         ...prev,
         {
@@ -247,7 +250,7 @@ function Chatbot() {
                 </svg>
               </button>
             </div>
-            <div className="px-4 pb-2 text-xs text-gray-500 text-right">
+            <div className="px-4 pb-2 text-right text-xs text-gray-500">
               {1000 - currentMessage.length}/1000 characters
             </div>
           </div>
@@ -712,10 +715,10 @@ export default function Dashboard() {
         <div className="mx-auto max-w-7xl">
           {/* Header */}
           <div className="mb-8 flex flex-col items-center">
-            <h1 className="mb-4 text-3xl font-bold text-green-600">
+            <h1 className="mb-4 text-6xl font-bold text-green-600">
               Dashboard
             </h1>
-            <p className="mb-6 text-gray-700">
+            <p className="text-black-700 mb-6 text-3xl">
               Welcome to Obfin: Finance Manager & Advisor
             </p>
 

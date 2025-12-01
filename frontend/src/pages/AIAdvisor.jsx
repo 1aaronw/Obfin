@@ -26,10 +26,15 @@ export default function AIAdvisor() {
   const sendMessage = async () => {
     const now = Date.now();
     if (now - lastMessageTime < COOLDOWN_MS) {
-      const remaining = Math.ceil((COOLDOWN_MS - (now - lastMessageTime)) / 1000);
+      const remaining = Math.ceil(
+        (COOLDOWN_MS - (now - lastMessageTime)) / 1000,
+      );
       setMessages((prev) => [
         ...prev,
-        { sender: "error", text: `Please wait ${remaining} second(s) before sending another message.` },
+        {
+          sender: "error",
+          text: `Please wait ${remaining} second(s) before sending another message.`,
+        },
       ]);
       return;
     }
@@ -64,7 +69,9 @@ export default function AIAdvisor() {
 
       if (!res.ok) {
         const err = await res.json().catch(() => null);
-        throw new Error(err?.error || "Something went wrong. " + (err?.message || ""));
+        throw new Error(
+          err?.error || "Something went wrong. " + (err?.message || ""),
+        );
       }
 
       const data = await res.json();
@@ -126,8 +133,8 @@ export default function AIAdvisor() {
               msg.sender === "error"
                 ? "mr-auto bg-red-100 text-red-800"
                 : msg.sender === "user"
-                ? "ml-auto bg-blue-600 text-white"
-                : "mr-auto bg-gray-200 text-black"
+                  ? "ml-auto bg-blue-600 text-white"
+                  : "mr-auto bg-gray-200 text-black"
             }`}
           >
             {msg.text}
@@ -181,7 +188,7 @@ export default function AIAdvisor() {
           Send
         </button>
       </div>
-      <div className="mt-1 text-xs text-gray-500 text-right">
+      <div className="mt-1 text-right text-xs text-gray-500">
         {1000 - input.length}/1000 characters
       </div>
     </div>

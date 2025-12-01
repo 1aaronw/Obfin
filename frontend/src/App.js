@@ -23,7 +23,7 @@ function App() {
           <Route path="transactions" element={<Transactions />} />
           <Route path="advisor" element={<AIAdvisor />} />
           <Route path="tax-calculator" element={<TaxCalculator />} />
-           <Route path="settings" element={<Settings />} />
+          <Route path="settings" element={<Settings />} />
           {/* You’ll add more pages here later */}
         </Route>
       </Routes>
