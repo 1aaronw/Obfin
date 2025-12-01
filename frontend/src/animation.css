@@ -1,0 +1,36 @@
+@keyframes greenGradientDrift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes greenGlowPulse {
+  0%,
+  100% {
+    opacity: 0.9;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.green-animated-bg {
+  background: linear-gradient(
+    135deg,
+    #6dc06d,
+    #64da5b,
+    #16b929,
+    #2a8f43,
+    #1fa348
+  );
+  background-size: 250% 250%;
+  animation:
+    greenGradientDrift 16s ease infinite,
+    greenGlowPulse 6s ease-in-out infinite;
+}

@@ -14,12 +14,12 @@ export default function FinanceSettings({ userData }) {
   const [state, setState] = useState(budgets.state || "CA");
 
   const [monthlyIncome, setMonthlyIncome] = useState(
-    budgets.monthlyIncome || ""
+    budgets.monthlyIncome || "",
   );
   const [manualMonthlyOverride, setManualMonthlyOverride] = useState(false);
 
   const [monthlySavingsGoal, setMonthlySavingsGoal] = useState(
-    budgets.monthlySavingsGoal || ""
+    budgets.monthlySavingsGoal || "",
   );
   const annualSavingsGoal = Number(monthlySavingsGoal || 0) * 12;
 
@@ -30,7 +30,13 @@ export default function FinanceSettings({ userData }) {
   ------------------------------*/
 
   const migrateOldCategories = () => {
-    const oldKeys = ["food", "entertainment", "insurance", "utilities", "miscellaneous"];
+    const oldKeys = [
+      "food",
+      "entertainment",
+      "insurance",
+      "utilities",
+      "miscellaneous",
+    ];
 
     const isOld = oldKeys.some((k) => budgets[k] !== undefined);
 
@@ -60,14 +66,17 @@ export default function FinanceSettings({ userData }) {
 
     const fetchMonthlyIncome = async () => {
       try {
-        const response = await fetch("http://localhost:5001/api/tax/calculate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            income: Number(annualIncome),
-            state,
-          }),
-        });
+        const response = await fetch(
+          "http://localhost:5001/api/tax/calculate",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              income: Number(annualIncome),
+              state,
+            }),
+          },
+        );
 
         const data = await response.json();
         if (response.ok) {
@@ -91,10 +100,7 @@ export default function FinanceSettings({ userData }) {
 
     const id = name.toLowerCase().replace(/\s+/g, "-");
 
-    setCategories((prev) => [
-      ...prev,
-      { id, name, amount: 0 },
-    ]);
+    setCategories((prev) => [...prev, { id, name, amount: 0 }]);
   };
 
   const renameCategory = (id) => {
@@ -102,7 +108,7 @@ export default function FinanceSettings({ userData }) {
     if (!name) return;
 
     setCategories((prev) =>
-      prev.map((cat) => (cat.id === id ? { ...cat, name } : cat))
+      prev.map((cat) => (cat.id === id ? { ...cat, name } : cat)),
     );
   };
 
@@ -119,8 +125,8 @@ export default function FinanceSettings({ userData }) {
   const updateCategoryAmount = (id, value) => {
     setCategories((prev) =>
       prev.map((cat) =>
-        cat.id === id ? { ...cat, amount: Number(value) || "" } : cat
-      )
+        cat.id === id ? { ...cat, amount: Number(value) || "" } : cat,
+      ),
     );
   };
 
@@ -171,11 +177,10 @@ export default function FinanceSettings({ userData }) {
     const [collapsed, setCollapsed] = useState(false);
 
     return (
-      <div className="border rounded-lg p-4 bg-gray-50 shadow-sm">
-
+      <div className="rounded-lg border bg-gray-50 p-4 shadow-sm">
         {/* Header Row */}
         <div
-          className="flex justify-between items-center cursor-pointer"
+          className="flex cursor-pointer items-center justify-between"
           onClick={() => setCollapsed(!collapsed)}
         >
           <h4 className="font-medium">{cat.name}</h4>
@@ -200,7 +205,7 @@ export default function FinanceSettings({ userData }) {
                 disabled={categories.length === 1}
                 className={`underline ${
                   categories.length === 1
-                    ? "text-gray-400 cursor-not-allowed"
+                    ? "cursor-not-allowed text-gray-400"
                     : "text-red-600 hover:text-red-700"
                 }`}
                 onClick={(e) => {
@@ -220,7 +225,7 @@ export default function FinanceSettings({ userData }) {
             <label className="text-sm">Budget Amount ($)</label>
             <input
               type="number"
-              className="border p-2 w-full rounded"
+              className="w-full rounded border p-2"
               value={cat.amount}
               onChange={(e) => updateCategoryAmount(cat.id, e.target.value)}
             />
@@ -234,16 +239,16 @@ export default function FinanceSettings({ userData }) {
       9. UI BELOW (FULL)
   ------------------------------*/
   return (
-    <div className="space-y-6 max-w-xl">
+    <div className="max-w-xl space-y-6">
       <h2 className="text-xl font-semibold">Finance Settings</h2>
 
       {/* Income Box */}
-      <div className="border rounded-lg p-4 shadow-sm bg-white space-y-4">
+      <div className="space-y-4 rounded-lg border bg-white p-4 shadow-sm">
         <div>
-          <label className="font-medium text-sm">Annual Income ($)</label>
+          <label className="text-sm font-medium">Annual Income ($)</label>
           <input
             type="number"
-            className="border p-2 w-full rounded"
+            className="w-full rounded border p-2"
             value={annualIncome}
             onChange={(e) => {
               setAnnualIncome(e.target.value);
@@ -253,9 +258,9 @@ export default function FinanceSettings({ userData }) {
         </div>
 
         <div>
-          <label className="font-medium text-sm">State</label>
+          <label className="text-sm font-medium">State</label>
           <select
-            className="border p-2 w-full rounded"
+            className="w-full rounded border p-2"
             value={state}
             onChange={(e) => {
               setState(e.target.value);
@@ -263,18 +268,67 @@ export default function FinanceSettings({ userData }) {
             }}
           >
             {[
-              "CA","TX","FL","NY","NJ","PA","IL","OH","AZ","MI","GA","NC","VA","WA",
-              "MA","TN","IN","MD","MO","WI","MN","CO","AL","SC","KY","LA","OR","OK",
-              "CT","IA","MS","AR","KS","UT","NV","NM","NE","WV","ID","HI","NH","ME",
-              "RI","MT","DE","SD","ND","VT","AK","WY","DC",
+              "CA",
+              "TX",
+              "FL",
+              "NY",
+              "NJ",
+              "PA",
+              "IL",
+              "OH",
+              "AZ",
+              "MI",
+              "GA",
+              "NC",
+              "VA",
+              "WA",
+              "MA",
+              "TN",
+              "IN",
+              "MD",
+              "MO",
+              "WI",
+              "MN",
+              "CO",
+              "AL",
+              "SC",
+              "KY",
+              "LA",
+              "OR",
+              "OK",
+              "CT",
+              "IA",
+              "MS",
+              "AR",
+              "KS",
+              "UT",
+              "NV",
+              "NM",
+              "NE",
+              "WV",
+              "ID",
+              "HI",
+              "NH",
+              "ME",
+              "RI",
+              "MT",
+              "DE",
+              "SD",
+              "ND",
+              "VT",
+              "AK",
+              "WY",
+              "DC",
             ].map((s) => (
-              <option key={s} value={s}>{s}</option>
+              <option key={s} value={s}>
+                {s}
+              </option>
             ))}
           </select>
         </div>
 
         <div>
-          <label className="font-medium text-sm">
+          <label className="text-sm font-medium">
             Monthly Net Income ($)
             {manualMonthlyOverride && (
               <span className="ml-2 text-xs text-blue-600">(manual)</span>
@@ -282,7 +336,7 @@ export default function FinanceSettings({ userData }) {
           </label>
           <input
             type="number"
-            className="border p-2 w-full rounded"
+            className="w-full rounded border p-2"
             value={monthlyIncome}
             onChange={(e) => {
               setMonthlyIncome(e.target.value);
@@ -292,20 +346,22 @@ export default function FinanceSettings({ userData }) {
         </div>
 
         <div>
-          <label className="font-medium text-sm">Monthly Savings Goal ($)</label>
+          <label className="text-sm font-medium">
+            Monthly Savings Goal ($)
+          </label>
           <input
             type="number"
-            className="border p-2 w-full rounded"
+            className="w-full rounded border p-2"
             value={monthlySavingsGoal}
             onChange={(e) => setMonthlySavingsGoal(e.target.value)}
           />
         </div>
 
         <div>
-          <label className="font-medium text-sm">Annual Savings Goal ($)</label>
+          <label className="text-sm font-medium">Annual Savings Goal ($)</label>
           <input
             type="number"
-            className="border p-2 w-full rounded bg-gray-100"
+            className="w-full rounded border bg-gray-100 p-2"
             value={annualSavingsGoal}
             readOnly
           />
@@ -313,11 +369,10 @@ export default function FinanceSettings({ userData }) {
       </div>
 
       {/* Categories Box */}
-      <div className="border rounded-lg p-4 shadow-sm bg-white space-y-4">
-
+      <div className="space-y-4 rounded-lg border bg-white p-4 shadow-sm">
         {/* Collapse All Header */}
         <div
-          className="flex justify-between items-center cursor-pointer"
+          className="flex cursor-pointer items-center justify-between"
           onClick={() => setCategoriesOpen(!categoriesOpen)}
         >
           <h3 className="font-semibold">Budget Categories</h3>
@@ -330,7 +385,7 @@ export default function FinanceSettings({ userData }) {
           <>
             <button
               onClick={addCategory}
-              className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition"
+              className="rounded bg-blue-600 px-3 py-1 text-white transition hover:bg-blue-700"
             >
               + Add Category
             </button>
@@ -346,7 +401,10 @@ export default function FinanceSettings({ userData }) {
               <p className={`font-medium ${summaryColor}`}>
                 Total Budget: <strong>${total.toFixed(2)}</strong>
                 {income > 0 && (
-                  <> — {percent.toFixed(1)}% of your income (${income})</>
+                  <>
+                    {" "}
+                    — {percent.toFixed(1)}% of your income (${income})
+                  </>
                 )}
               </p>
             </div>
@@ -356,7 +414,7 @@ export default function FinanceSettings({ userData }) {
 
       <button
         onClick={handleSave}
-        className="bg-green-600 text-white px-4 py-2 rounded shadow"
+        className="rounded bg-green-600 px-4 py-2 text-white shadow"
       >
         Save Finance Settings
       </button>

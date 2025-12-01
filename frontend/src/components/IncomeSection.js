@@ -42,8 +42,63 @@ export default function IncomeSection({ onIncomeChange }) {
           <option value="" disabled hidden>
             Select your state
           </option>
-          <option value="CA">CA</option>
-          <option value="TX">TX</option>
+          {[
+            "CA",
+            "TX",
+            "FL",
+            "NY",
+            "NJ",
+            "PA",
+            "IL",
+            "OH",
+            "AZ",
+            "MI",
+            "GA",
+            "NC",
+            "VA",
+            "WA",
+            "MA",
+            "TN",
+            "IN",
+            "MD",
+            "MO",
+            "WI",
+            "MN",
+            "CO",
+            "AL",
+            "SC",
+            "KY",
+            "LA",
+            "OR",
+            "OK",
+            "CT",
+            "IA",
+            "MS",
+            "AR",
+            "KS",
+            "UT",
+            "NV",
+            "NM",
+            "NE",
+            "WV",
+            "ID",
+            "HI",
+            "NH",
+            "ME",
+            "RI",
+            "MT",
+            "DE",
+            "SD",
+            "ND",
+            "VT",
+            "AK",
+            "WY",
+            "DC",
+          ].map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
         </select>
       </div>
 
