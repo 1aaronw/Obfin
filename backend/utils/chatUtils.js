@@ -18,7 +18,7 @@ export async function validateChatInput(uid, message) {
 
   try {
     const metadataDoc = await metadataRef.get();
-    if (metadataDoc.exists()) {
+    if (metadataDoc.exists) {
       const data = metadataDoc.data();
       const now = admin.firestore.Timestamp.now().toMillis();
       const lastTime = data.lastMessageTime?.toMillis() || 0;

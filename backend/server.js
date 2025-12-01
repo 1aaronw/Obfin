@@ -8,9 +8,9 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { computeTax } from "./tax/taxEngine.js";
 import {
-  validateChatInput,
-  updateChatRateLimit,
   estimateInputTokens,
+  updateChatRateLimit,
+  validateChatInput,
 } from "./utils/chatUtils.js";
 
 //-------setup environment-------
@@ -78,6 +78,7 @@ app.get("/api/test", async (req, res) => {
 });
 
 //--------Google Gemini chat endpoint---------
+// -------- Google Gemini chat endpoint (fixed to use spending + taxHistory) --------
 app.post("/api/gemini/chat", async (request, response) => {
   try {
     const { message, uid } = request.body;
@@ -86,7 +87,7 @@ app.post("/api/gemini/chat", async (request, response) => {
       return response.status(400).json({ error: "User ID (uid) is required." });
     }
 
-    const trimmedMessage = message.trim();
+    const trimmedMessage = (message || "").trim();
     const validation = await validateChatInput(uid, trimmedMessage);
     if (!validation.valid) {
       return response.status(400).json({ error: validation.error });
@@ -94,28 +95,27 @@ app.post("/api/gemini/chat", async (request, response) => {
 
     const db = admin.firestore();
 
-    // ===================== TAX HISTORY =====================
+    // ===================== TAX HISTORY (users/{uid}/taxHistory) =====================
     const taxRef = db
       .collection("users")
       .doc(uid)
-      .collection("taxCalculations")
+      .collection("taxHistory")
       .orderBy("createdAt", "desc")
       .limit(10);
 
     const taxSnapshot = await taxRef.get();
 
-    let taxHistory = [];
-    taxSnapshot.forEach((doc) => {
+    const taxHistory = taxSnapshot.docs.map((doc) => {
       const d = doc.data();
-      taxHistory.push({
-        date: d.createdAt?.toDate?.().toLocaleString() || "N/A",
-        income: d.income,
-        state: d.state,
-        federalTax: d.federalTax,
-        stateTax: d.stateTax,
-        totalTax: d.totalTax,
-        effectiveRate: d.effectiveRate,
-      });
+      return {
+        date: d.createdAt?.toDate?.().toLocaleString() || d.date || "Unknown",
+        income: d.income || 0,
+        state: d.state || "N/A",
+        federalTax: d.federalTax || 0,
+        stateTax: d.stateTax || 0,
+        totalTax: d.totalTax || 0,
+        effectiveRate: d.effectiveRate || 0,
+      };
     });
 
     const taxHistoryString =
@@ -127,24 +127,15 @@ app.post("/api/gemini/chat", async (request, response) => {
                   t.state
                 }, Federal: $${t.federalTax}, StateTax: $${t.stateTax}, Total: $${
                   t.totalTax
-                }, EffectiveRate: ${t.effectiveRate}%`,
+                }, EffectiveRate: ${t.effectiveRate.toFixed(2)}%`,
             )
             .join("\n")
         : "No tax history available.";
 
-    // ===================== TRANSACTION HISTORY =====================
-    const txRef = db
-      .collection("users")
-      .doc(uid)
-      .collection("transactions")
-      .orderBy("date", "desc")
-      .limit(20);
-
-    const txSnapshot = await txRef.get();
-
-    let transactions = [];
-    let categoryTotals = {};
-    let last30DaysSpend = 0;
+    // ===================== TRANSACTIONS (users/{uid}.spending map) =====================
+    const userDoc = await db.collection("users").doc(uid).get();
+    const userData = userDoc.exists ? userDoc.data() : {};
+    const spending = userData.spending || {};
 
     const now = new Date();
     const thirtyDaysAgo = new Date(
@@ -153,38 +144,48 @@ app.post("/api/gemini/chat", async (request, response) => {
       now.getDate() - 30,
     );
 
-    txSnapshot.forEach((doc) => {
-      const d = doc.data();
-      const dateObj = d.date?.toDate?.() || d.createdAt?.toDate?.() || null;
+    let transactions = [];
+    let categoryTotals = {};
+    let last30DaysSpend = 0;
 
-      const tx = {
+    Object.values(spending).forEach((tx) => {
+      if (!tx) return;
+
+      let dateObj = tx.date ? new Date(tx.date) : tx.createdAt?.toDate?.();
+      const amount = Number(tx.amount) || 0;
+
+      const entry = {
         date: dateObj ? dateObj.toLocaleString() : "N/A",
         rawDate: dateObj,
-        amount: Number(d.amount) || 0,
-        category: d.category || "Uncategorized",
-        type: d.type || "expense",
-        description: d.description || "",
+        amount,
+        category: tx.category || "Uncategorized",
+        type: tx.type || "expense",
+        description: tx.description || "",
       };
 
-      transactions.push(tx);
+      transactions.push(entry);
 
-      if (tx.type === "expense") {
-        if (tx.rawDate && tx.rawDate >= thirtyDaysAgo) {
-          last30DaysSpend += tx.amount;
-          categoryTotals[tx.category] =
-            (categoryTotals[tx.category] || 0) + tx.amount;
-        }
+      if (entry.type === "expense" && entry.rawDate && entry.rawDate >= thirtyDaysAgo) {
+        last30DaysSpend += amount;
+        categoryTotals[entry.category] =
+          (categoryTotals[entry.category] || 0) + amount;
       }
     });
+
+    transactions.sort(
+      (a, b) =>
+        (b.rawDate?.getTime?.() || 0) - (a.rawDate?.getTime?.() || 0)
+    );
 
     const transactionsString =
       transactions.length > 0
         ? transactions
+            .slice(0, 40)
             .map(
               (t, i) =>
-                `${i + 1}. ${t.date} — ${t.type.toUpperCase()} $${t.amount} in ${
-                  t.category
-                }${t.description ? ` (${t.description})` : ""}`,
+                `${i + 1}. ${t.date} — ${t.type.toUpperCase()} $${t.amount.toFixed(
+                  2
+                )} in ${t.category}${t.description ? ` (${t.description})` : ""}`,
             )
             .join("\n")
         : "No transaction history available.";
@@ -194,31 +195,48 @@ app.post("/api/gemini/chat", async (request, response) => {
         ? Object.entries(categoryTotals)
             .map(([cat, amt]) => `- ${cat}: $${amt.toFixed(2)}`)
             .join("\n")
-        : "No category breakdown available (no recent expenses).";
+        : "No category breakdown available.";
 
     // ===================== GEMINI CONTEXT TEXT =====================
-    const contextText = `
-You are Obfin's AI Financial Advisor.
+const contextText = `
+You are Obfin’s AI Financial Advisor.
 
-Use the user's real data below when answering.
-Be specific but concise. If numbers are approximate, say so.
+Your tone must always follow these rules:
+- Friendly, brief, and human-like.
+- Use bullet points for clarity.
+- Provide a "snapshot" feeling: quick overview + useful highlight.
+- Encourage the user politely (e.g., “You’re doing great”, “Let me know if you want help”).
+- Avoid robotic or overly formal responses.
+- Never lecture; keep it conversational.
+- If there's little spending, point it out positively.
+- If there are trends (more categories), point out top categories or notable changes.
 
-================ TAX HISTORY (latest ${taxHistory.length}) ================
+Here is the user’s financial data. Use this to create a personalized summary:
+
+=== TAX HISTORY (latest ${taxHistory.length}) ===
 ${taxHistoryString}
 
-================ TRANSACTIONS (latest ${transactions.length}) ================
+=== TRANSACTIONS (latest ${transactions.length}) ===
 ${transactionsString}
 
-================ SPENDING SUMMARY (last 30 days) ================
-Total spent (expenses only): $${last30DaysSpend.toFixed(2)}
+=== LAST 30 DAYS SUMMARY ===
+Total spent: $${last30DaysSpend.toFixed(2)}
 By category:
 ${categorySummaryString}
 
-================ USER QUESTION ================
+=== USER QUESTION ===
 ${trimmedMessage}
-    `;
 
-    // ===================== GEMINI REQUEST (JSON) =====================
+Now produce a concise, friendly response that includes:
+1. A short bullet-point summary of spending (like “Last 30 Days Snapshot”).  
+2. Category highlights (e.g., “Top categories”, “All spending was in Food”).  
+3. Any helpful insight (e.g., “Light spending so far”, “Shopping increased vs last month”).  
+4. A closing friendly line offering help (e.g., “Let me know if you want deeper insights”).  
+
+Do NOT write paragraphs or long explanations. Keep it clean and human.
+`;
+
+    // ===================== GEMINI REQUEST =====================
     const geminiResponse = await genAI.models.generateContent({
       model: "gemini-2.5-flash",
       contents: [{ parts: [{ text: contextText }] }],
@@ -228,16 +246,13 @@ ${trimmedMessage}
       geminiResponse?.candidates?.[0]?.content?.parts?.[0]?.text ||
       "NO_RESPONSE_FOUND";
 
-    // Log estimated input token cost (Gemini 1.5 Flash: ~$0.075 / 1M input tokens)
     const inputTokens = estimateInputTokens(contextText);
-    const estInputCost = ((inputTokens / 1000000) * 0.075).toFixed(6);
     console.log(
-      `Chat UID:${uid} inputTokens:${inputTokens} estInputCost:$${estInputCost}`,
+      `Chat UID:${uid} inputTokens:${inputTokens}`
     );
 
     await updateChatRateLimit(uid);
 
-    // ===================== SEND RESPONSE =====================
     return response.json({
       status: "success",
       response: text,
@@ -246,10 +261,8 @@ ${trimmedMessage}
       transactionsIncluded: transactions.length,
     });
   } catch (error) {
-    console.error("Google Gemini API error:", error);
-    return response
-      .status(500)
-      .json({ error: "500: Failed to get response from Gemini" });
+    console.error("AI ERROR:", error);
+    return response.status(500).json({ error: "AI system error" });
   }
 });
 
@@ -550,6 +563,27 @@ app.delete("/api/transactions/:uid/:transactionId", async (req, res) => {
     res
       .status(500)
       .json({ error: "Failed to delete transaction", details: error.message });
+  }
+});
+// -------- Get User Budget Categories --------
+app.get("/api/categories/:uid", async (req, res) => {
+  try {
+    const uid = req.params.uid;
+
+    const userRef = admin.firestore().collection("users").doc(uid);
+    const userDoc = await userRef.get();
+
+    if (!userDoc.exists) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const data = userDoc.data();
+    const categories = Object.keys(data.budgetCategories || {});
+
+    return res.json({ categories });
+  } catch (err) {
+    console.error("Error retrieving categories:", err);
+    return res.status(500).json({ error: "Failed to load categories" });
   }
 });
 
