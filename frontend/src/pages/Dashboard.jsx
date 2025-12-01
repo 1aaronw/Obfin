@@ -1,889 +1,1176 @@
-import { signOut, getAuth, onAuthStateChanged } from "firebase/auth";
-import { doc, getFirestore, onSnapshot } from "firebase/firestore";
-import { useState, useEffect, useCallback, useMemo } from "react";
+// src/pages/Dashboard.jsx
+import {
+  collection,
+  doc,
+  getDoc,
+  increment,
+  updateDoc,
+} from "firebase/firestore";
+import { useEffect, useMemo, useState } from "react";
 import {
   Bar,
   BarChart,
   CartesianGrid,
   Cell,
   Legend,
-  Line,
-  LineChart,
   Pie,
   PieChart,
+  RadialBar,
+  RadialBarChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
-import { auth } from "../firebase/firebase";
-import "../animation.css";
+import { auth, db } from "../firebase/firebase";
+import AddTransactionModal from "./transactions/AddTransactionModal";
 
-// separate chat box component to prevent re-renders to charts
-function Chatbot() {
-  const [messages, setMessages] = useState([]);
-  const [currentMessage, setCurrentMessage] = useState("");
-  const [chatLoading, setChatLoading] = useState(false);
-  const [showChatbot, setShowChatbot] = useState(false);
-  const [lastMessageTime, setLastMessageTime] = useState(0);
-  const COOLDOWN_MS = 10000; // 10 seconds
+// Simple color palette for charts
+const CATEGORY_COLORS = [
+  "#0ea5e9",
+  "#22c55e",
+  "#f97316",
+  "#e11d48",
+  "#a855f7",
+  "#facc15",
+  "#64748b",
+];
 
-  const sendMessage = async () => {
-    if (!currentMessage.trim()) return;
-
-    const now = Date.now();
-    if (now - lastMessageTime < COOLDOWN_MS) {
-      const remaining = Math.ceil(
-        (COOLDOWN_MS - (now - lastMessageTime)) / 1000,
-      );
-      setMessages((prev) => [
-        ...prev,
-        {
-          type: "error",
-          text: `Please wait ${remaining} second(s) before sending another message.`,
-        },
-      ]);
-      return;
-    }
-
-    const userMessage = currentMessage.trim();
-    setCurrentMessage("");
-    setMessages((prev) => [...prev, { type: "user", text: userMessage }]);
-    setChatLoading(true);
-
-    const user = auth.currentUser;
-    if (!user) {
-      setMessages((prev) => [
-        ...prev,
-        { type: "error", text: "Please sign in to use the Finance Assistant." },
-      ]);
-      setChatLoading(false);
-      return;
-    }
-
-    const uid = user.uid;
-    console.log("Dashboard chat - sending with uid:", uid);
-
-    try {
-      const response = await fetch(
-        `${process.env.REACT_APP_API_BASE_URL}/api/gemini/chat`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ message: userMessage, uid }),
-        },
-      );
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            type: "bot",
-            text: data.response,
-            model: data.model,
-          },
-        ]);
-      } else {
-        setMessages((prev) => [
-          ...prev,
-          {
-            type: "error",
-            text: data.error || "Failed to get response",
-          },
-        ]);
-      }
-    } catch (error) {
-      console.error("Chat error:", error);
-      setMessages((prev) => [
-        ...prev,
-        {
-          type: "error",
-          text: "Network error: Unable to connect to chatbot",
-        },
-      ]);
-    }
-
-    setChatLoading(false);
-    setLastMessageTime(Date.now());
-  };
-
-  const handleKeyPress = (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
-  };
-
-  return (
-    <>
-      {/* floating chat button */}
-      <button
-        onClick={() => setShowChatbot(!showChatbot)}
-        className="fixed bottom-6 right-6 z-50 rounded-full bg-green-600 p-4 text-white shadow-lg transition-colors hover:bg-green-700"
-      >
-        <svg
-          className="h-6 w-6"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-          />
-        </svg>
-      </button>
-
-      {/* chat window */}
-      {showChatbot && (
-        <div className="fixed bottom-24 right-6 z-50 flex h-96 w-96 max-w-[calc(100vw-2rem)] flex-col rounded-lg border border-gray-200 bg-white shadow-xl">
-          {/* chat header */}
-          <div className="flex items-center justify-between rounded-t-lg bg-green-600 p-4 text-white">
-            <div>
-              <h3 className="font-semibold">Finance Assistant</h3>
-            </div>
-            <button
-              onClick={() => setShowChatbot(false)}
-              className="text-white hover:text-gray-200"
-            >
-              <svg
-                className="h-5 w-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          </div>
-
-          {/* chat messages */}
-          <div className="flex-1 space-y-3 overflow-y-auto p-4">
-            {messages.length === 0 && (
-              <div className="text-center text-sm text-gray-500">
-                Ask me anything about your finances!
-              </div>
-            )}
-            {messages.map((message, index) => (
-              <div
-                key={index}
-                className={`flex ${message.type === "user" ? "justify-end" : "justify-start"}`}
-              >
-                <div
-                  className={`max-w-[80%] rounded-lg p-3 ${
-                    message.type === "user"
-                      ? "bg-green-600 text-white"
-                      : message.type === "error"
-                        ? "bg-red-100 text-red-800"
-                        : "bg-gray-100 text-gray-800"
-                  }`}
-                >
-                  <p className="whitespace-pre-wrap text-sm">{message.text}</p>
-                  {message.model && (
-                    <p className="mt-1 text-xs opacity-70">
-                      Model: {message.model}
-                    </p>
-                  )}
-                </div>
-              </div>
-            ))}
-            {chatLoading && (
-              <div className="flex justify-start">
-                <div className="rounded-lg bg-gray-100 p-3 text-gray-800">
-                  <div className="flex space-x-1">
-                    <div className="h-2 w-2 animate-bounce rounded-full bg-gray-400"></div>
-                    <div
-                      className="h-2 w-2 animate-bounce rounded-full bg-gray-400"
-                      style={{ animationDelay: "0.1s" }}
-                    ></div>
-                    <div
-                      className="h-2 w-2 animate-bounce rounded-full bg-gray-400"
-                      style={{ animationDelay: "0.2s" }}
-                    ></div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* chat Input */}
-          <div className="border-t border-gray-200 p-4">
-            <div className="flex space-x-2">
-              <input
-                type="text"
-                maxLength={1000}
-                value={currentMessage}
-                onChange={(e) => setCurrentMessage(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Ask me about your finances..."
-                className="flex-1 rounded-md border border-gray-300 px-3 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-green-500"
-                disabled={chatLoading}
-              />
-              <button
-                onClick={sendMessage}
-                disabled={chatLoading || !currentMessage.trim()}
-                className="rounded-md bg-green-600 px-4 py-2 text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-                  />
-                </svg>
-              </button>
-            </div>
-            <div className="px-4 pb-2 text-right text-xs text-gray-500">
-              {1000 - currentMessage.length}/1000 characters
-            </div>
-          </div>
-        </div>
-      )}
-    </>
-  );
+function formatMonthLabel(key) {
+  // key like "2025-01"
+  const [year, month] = key.split("-");
+  const m = parseInt(month, 10) - 1;
+  const short =
+    [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ][m] || month;
+  return `${short} ${year}`;
 }
 
-function News() {
-  const [news, setNews] = useState([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
+// Generate last 12 months keys like "2025-11"
+function getLast12Months() {
+  const result = [];
+  const now = new Date();
+
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
+      2,
+      "0",
+    )}`;
+    result.push({
+      key,
+      label: formatMonthLabel(key),
+    });
+  }
+
+  return result;
+}
+
+function getPreviousMonthKey(key) {
+  const [yearStr, monthStr] = key.split("-");
+  let year = parseInt(yearStr, 10);
+  let month = parseInt(monthStr, 10);
+  month -= 1;
+  if (month === 0) {
+    month = 12;
+    year -= 1;
+  }
+  return `${year}-${String(month).padStart(2, "0")}`;
+}
+
+function normalizeId(id) {
+  return String(id || "").toLowerCase().trim();
+}
+
+// Fallback/sample news in case API fails
+const SAMPLE_NEWS = [
+  {
+    id: "s1",
+    source: "Global Markets Brief",
+    headline: "Investors rotate back into tech as markets eye lower rates",
+    timeAgo: "Today",
+    topic: "Stocks • Tech",
+  },
+  {
+    id: "s2",
+    source: "Money Daily",
+    headline: "How to build an emergency fund without pausing your goals",
+    timeAgo: "2h ago",
+    topic: "Personal Finance",
+  },
+  {
+    id: "s3",
+    source: "Commodities Watch",
+    headline: "Oil retreats as recession fears outweigh supply concerns",
+    timeAgo: "3h ago",
+    topic: "Energy",
+  },
+  {
+    id: "s4",
+    source: "Bond Desk",
+    headline: "Treasury yields fall after cooler inflation data",
+    timeAgo: "4h ago",
+    topic: "Bonds",
+  },
+  {
+    id: "s5",
+    source: "FX Radar",
+    headline: "Dollar slips as markets price in rate cuts",
+    timeAgo: "5h ago",
+    topic: "Currencies",
+  },
+];
+
+export default function Dashboard() {
+  const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [transactionDraft, setTransactionDraft] = useState({
+    date: "",
+    category: "",
+    amount: "",
+    description: "",
+  });
+  const [refreshKey, setRefreshKey] = useState(0); // force reload after adding tx
+  const [isMonthMenuOpen, setIsMonthMenuOpen] = useState(false);
 
+  // News state
+  const [newsItems, setNewsItems] = useState([]);
+  const [newsStatus, setNewsStatus] = useState("loading");
+
+  const last12Months = useMemo(() => getLast12Months(), []);
+  const currentMonthKey = last12Months[0].key;
+  const [selectedMonthKey, setSelectedMonthKey] = useState(currentMonthKey);
+
+  // 1) Load user data (budgets + spending + monthlyTrends)
   useEffect(() => {
-    const fetchNews = async () => {
+    const load = async () => {
       try {
-        const response = await fetch(
-          `${process.env.REACT_APP_API_BASE_URL}/api/news`,
-        );
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch news");
+        const user = auth.currentUser;
+        if (!user) {
+          setErrorMsg("You must be logged in to view your dashboard.");
+          setLoading(false);
+          return;
         }
 
-        const data = await response.json();
-        setNews(data.data || []);
-        setLoading(false);
+        const ref = doc(db, "users", user.uid);
+        const snap = await getDoc(ref);
+        if (!snap.exists()) {
+          setErrorMsg("User data not found.");
+          setLoading(false);
+          return;
+        }
+
+        setUserData({ id: snap.id, ...snap.data() });
       } catch (err) {
-        console.error("Error fetching news:", err);
-        setError(err.message);
+        console.error("Failed to load dashboard data:", err);
+        setErrorMsg("Failed to load dashboard data.");
+      } finally {
         setLoading(false);
       }
     };
 
-    fetchNews();
+    load();
+  }, [refreshKey]);
 
-    // Refreshes every 15 minutes
-    const interval = setInterval(fetchNews, 15 * 60 * 1000);
-    return () => clearInterval(interval);
+  // 2) Load news (with graceful fallback)
+  useEffect(() => {
+    const loadNews = async () => {
+      try {
+        // CRA-style env var name
+        const apiKey = process.env.REACT_APP_MARKETAUX_API_KEY;
+
+        if (!apiKey) {
+          setNewsStatus("sample");
+          setNewsItems(SAMPLE_NEWS);
+          return;
+        }
+
+        const url = `https://api.marketaux.com/v1/news/all?language=en&filter_entities=true&group_by=source&limit=10&api_token=${encodeURIComponent(
+          apiKey,
+        )}`;
+
+        const res = await fetch(url);
+        const contentType = res.headers.get("content-type") || "";
+
+        if (!res.ok || !contentType.includes("application/json")) {
+          console.warn("News API returned non-JSON or error, using sample.");
+          setNewsStatus("sample");
+          setNewsItems(SAMPLE_NEWS);
+          return;
+        }
+
+        const data = await res.json();
+        const articles = Array.isArray(data.data) ? data.data : [];
+
+        if (!articles.length) {
+          setNewsStatus("sample");
+          setNewsItems(SAMPLE_NEWS);
+          return;
+        }
+
+        const mapped = articles.slice(0, 10).map((item, idx) => ({
+          id: item.uuid || `api-${idx}`,
+          source: item.source || "News",
+          headline: item.title || "Untitled headline",
+          timeAgo: item.published_at
+            ? new Date(item.published_at).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+            : "",
+          topic: (item.category && String(item.category)) || "",
+        }));
+
+        setNewsItems(mapped);
+        setNewsStatus("live");
+      } catch (err) {
+        console.warn("Failed to load news, using sample.", err);
+        setNewsStatus("sample");
+        setNewsItems(SAMPLE_NEWS);
+      }
+    };
+
+    loadNews();
   }, []);
 
-  const goToPrevious = () => {
-    setCurrentIndex((prev) => (prev - 1 + news.length) % news.length);
+  // 3) Extract budgets + spending from userData
+  const rawBudgets = userData?.budgets || {};
+  const categories = (rawBudgets.categories || []).map((c) => ({
+    ...c,
+    id: normalizeId(c.id),
+  }));
+  const monthlyIncome = Number(rawBudgets.monthlyIncome || 0);
+  const monthlySavingsGoal = Number(rawBudgets.monthlySavingsGoal || 0);
+  const spending = userData?.spending || {};
+  const monthlyTrends = userData?.monthlyTrends || {};
+
+  // 4) Compute SELECTED month's transactions and summary
+  const allSpendingEntries = Object.values(spending).map((tx) => ({
+    ...tx,
+    amount: Number(tx.amount || 0),
+    normCategory: normalizeId(tx.category),
+  }));
+
+  const thisMonthTransactions = allSpendingEntries.filter((tx) =>
+    typeof tx.date === "string"
+      ? tx.date.startsWith(selectedMonthKey)
+      : false,
+  );
+
+  const thisMonthTotal = thisMonthTransactions.reduce(
+    (sum, tx) => sum + (tx.amount || 0),
+    0,
+  );
+
+  // Per-category spent this month (by normalized category id)
+  const spendByCategory = {};
+  thisMonthTransactions.forEach((tx) => {
+    const catId = tx.normCategory || "uncategorized";
+    spendByCategory[catId] =
+      (spendByCategory[catId] || 0) + (tx.amount || 0);
+  });
+
+  // Helper: find category display name by id
+  const getCategoryName = (id) => {
+    const normId = normalizeId(id);
+    const found = categories.find((c) => c.id === normId);
+    return found?.name || id || "Uncategorized";
   };
 
-  const goToNext = () => {
-    setCurrentIndex((prev) => (prev + 1) % news.length);
-  };
+  // 5) Category chart data: budget vs spent (deduped by id)
+  const categoryMap = {};
 
-  const goToSlide = (index) => {
-    setCurrentIndex(index);
-  };
+  // Start with categories defined in Finance Settings
+  categories.forEach((cat) => {
+    const catId = cat.id;
+    const spent = spendByCategory[catId] || 0;
+    const budget = Number(cat.amount || 0);
 
+    const usedPct =
+      budget > 0
+        ? Math.round((spent / budget) * 100)
+        : spent > 0
+        ? 150 // treat as way over budget visually
+        : 0;
+
+    categoryMap[catId] = {
+      id: catId,
+      name: cat.name,
+      spent,
+      budget,
+      usedPct,
+    };
+  });
+
+  // Add any categories that appear in spend but aren't in budgets
+  Object.keys(spendByCategory).forEach((catIdRaw) => {
+    const catId = normalizeId(catIdRaw);
+    if (!categoryMap[catId]) {
+      const spent = spendByCategory[catId] || 0;
+      const budget = 0;
+      const usedPct = spent > 0 ? 150 : 0;
+
+      categoryMap[catId] = {
+        id: catId,
+        name: getCategoryName(catId),
+        spent,
+        budget,
+        usedPct,
+      };
+    }
+  });
+
+  const categoryChartData = Object.values(categoryMap).filter(
+    (item) => item.budget > 0 || item.spent > 0,
+  );
+
+  // 6) Monthly trend chart data (from monthlyTrends map, last 6 months)
+  const monthlyTrendData = Object.entries(monthlyTrends)
+    .sort(([a], [b]) => (a > b ? 1 : -1))
+    .slice(-6)
+    .map(([key, value]) => ({
+      key,
+      month: formatMonthLabel(key),
+      amount: Number(value || 0),
+    }));
+
+  // 7) Savings progress for selected month
+  const savingsProgress =
+    monthlySavingsGoal > 0
+      ? Math.min(
+          100,
+          Math.round(
+            (Math.max(monthlyIncome - thisMonthTotal, 0) /
+              monthlySavingsGoal) *
+              100,
+          ),
+        )
+      : 0;
+
+// 8) Monthly budget gauge (new odometer-style semi-circle)
+const totalCategoryBudget = categories.reduce(
+  (sum, cat) => sum + Number(cat.amount || 0),
+  0
+);
+
+// fallback budget = income - savingsGoal
+const fallbackBudget = Math.max(monthlyIncome - monthlySavingsGoal, 0);
+
+// total usable monthly budget:
+const monthlyBudget =
+  totalCategoryBudget || fallbackBudget || thisMonthTotal || 1;
+
+// raw % used
+const rawBudgetPct = (thisMonthTotal / monthlyBudget) * 100;
+const budgetUsedPctLabel = Math.round(rawBudgetPct || 0);
+
+// For the gauge arc (0 → 180 degrees mapped to 0 → 100%)
+const gaugePercentClamped = Math.min(
+  100,
+  Math.max(0, rawBudgetPct || 0)
+);
+
+// dynamic color thresholds
+let gaugeColor = "#22c55e"; // green
+if (gaugePercentClamped > 90) gaugeColor = "#ef4444"; // red
+else if (gaugePercentClamped > 60) gaugeColor = "#f97316"; // orange
+
+// Recharts needs a value out of 100
+const budgetGaugeData = [
+  {
+    name: "Spent",
+    value: gaugePercentClamped,
+    fill: gaugeColor,
+  },
+];
+
+  // 9) Month-over-month change (for insight card + trend subtitle)
+  const prevMonthKey = getPreviousMonthKey(selectedMonthKey);
+  const prevMonthAmount = Number(monthlyTrends?.[prevMonthKey] || 0);
+  let monthChangePct = null;
+  if (prevMonthAmount > 0) {
+    monthChangePct = Math.round(
+      ((thisMonthTotal - prevMonthAmount) / prevMonthAmount) * 100,
+    );
+  }
+  const monthChangeDirection =
+    monthChangePct === null
+      ? "none"
+      : monthChangePct > 0
+      ? "up"
+      : monthChangePct < 0
+      ? "down"
+      : "same";
+
+  // 10) Top categories mini bar data (top 3 by spend)
+  const topCategoriesData = [...categoryChartData]
+    .sort((a, b) => b.spent - a.spent)
+    .slice(0, 3);
+
+  // 11) Recent transactions mini list (latest 5 overall)
+  const recentTransactions = [...allSpendingEntries]
+    .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
+    .slice(0, 5);
+
+  const categoryIds = categories.map((c) => c.id);
+  const selectedMonthLabel =
+    last12Months.find((m) => m.key === selectedMonthKey)?.label ||
+    formatMonthLabel(selectedMonthKey);
+
+  // Small helpers
+  const remainingBudget = Math.max(monthlyBudget - thisMonthTotal, 0);
+  const incomeUsagePct =
+    monthlyIncome > 0
+      ? Math.round((thisMonthTotal / monthlyIncome) * 100)
+      : 0;
+
+  const trendSubtitle =
+    monthChangePct === null
+      ? "Total spent each month based on all recorded transactions."
+      : monthChangeDirection === "up"
+      ? `Spending is ${Math.abs(
+          monthChangePct,
+        )}% higher than the previous month.`
+      : monthChangeDirection === "down"
+      ? `Spending is ${Math.abs(
+          monthChangePct,
+        )}% lower than the previous month.`
+      : "Spending is about the same as the previous month.";
+
+  // ---------------- Add Transaction logic ----------------
+  async function handleAddTransaction() {
+    if (!transactionDraft.amount || Number(transactionDraft.amount) <= 0) {
+      alert("Amount must be a positive number.");
+      return;
+    }
+    if (!transactionDraft.description.trim()) {
+      alert("Description cannot be empty.");
+      return;
+    }
+    if (!transactionDraft.date) {
+      alert("Date cannot be empty.");
+      return;
+    }
+    if (!transactionDraft.category) {
+      alert("Category cannot be empty.");
+      return;
+    }
+
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        alert("You must be logged in.");
+        return;
+      }
+
+      const month = transactionDraft.date.substring(5, 7);
+      const year = transactionDraft.date.substring(0, 4);
+      const transId = doc(
+        collection(db, "users", user.uid, "spending"),
+      ).id;
+
+      const yearMonthKey = `${year}-${month}`;
+      const normalizedCategory = normalizeId(transactionDraft.category);
+
+      await updateDoc(doc(db, "users", user.uid), {
+        [`spending.${transId}`]: {
+          amount: Number(transactionDraft.amount),
+          category: normalizedCategory,
+          date: transactionDraft.date,
+          description: transactionDraft.description,
+          createdAt: Date.now(),
+        },
+        [`monthlyTrends.${yearMonthKey}`]: increment(
+          Number(transactionDraft.amount),
+        ),
+      });
+
+      setIsModalOpen(false);
+      setTransactionDraft({
+        date: "",
+        category: "",
+        amount: "",
+        description: "",
+      });
+      setRefreshKey((prev) => prev + 1); // reload dashboard data
+    } catch (err) {
+      console.error("Failed to add transaction from dashboard:", err);
+      alert("Failed to add transaction.");
+    }
+  }
+
+  // ---------------- UI ----------------
   if (loading) {
     return (
-      <div className="rounded-lg bg-white p-6 shadow-sm">
-        <h2 className="mb-4 text-lg font-semibold text-gray-800">
-          Financial News
-        </h2>
-        <div className="flex h-64 items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-green-600"></div>
-        </div>
+      <div className="p-6">
+        <h1 className="mb-6 text-3xl font-bold">Dashboard</h1>
+        <p>Loading your data…</p>
       </div>
     );
   }
 
-  if (error) {
+  if (errorMsg) {
     return (
-      <div className="rounded-lg bg-white p-6 shadow-sm">
-        <h2 className="mb-4 text-lg font-semibold text-gray-800">
-          Financial News
-        </h2>
-        <div className="flex h-64 items-center justify-center">
-          <p className="text-red-600">Failed to load news: {error}</p>
-        </div>
+      <div className="p-6">
+        <h1 className="mb-6 text-3xl font-bold">Dashboard</h1>
+        <p className="text-red-600">{errorMsg}</p>
       </div>
     );
   }
-
-  if (news.length === 0) {
-    return (
-      <div className="rounded-lg bg-white p-6 shadow-sm">
-        <h2 className="mb-4 text-lg font-semibold text-gray-800">
-          Financial News
-        </h2>
-        <div className="flex h-64 items-center justify-center">
-          <p className="text-gray-500">No news available</p>
-        </div>
-      </div>
-    );
-  }
-
-  const currentArticle = news[currentIndex];
 
   return (
-    <div className="rounded-lg bg-white p-6 shadow-sm">
-      <h2 className="mb-4 text-lg font-semibold text-gray-800">
-        Financial News
-      </h2>
+    <div className="p-6 space-y-6">
+      {/* Header + Month Selector + Add Transaction */}
+      <div className="flex items-center gap-4">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <h1 className="text-3xl font-bold">Dashboard</h1>
 
-      <div className="relative">
-        <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-green-50 to-blue-50">
-          {/* Article's image */}
-          {currentArticle.image_url && (
-            <div className="h-48 w-full overflow-hidden">
-              <img
-                src={currentArticle.image_url}
-                alt={currentArticle.title}
-                className="h-full w-full object-cover"
-                onError={(e) => {
-                  e.target.style.display = "none";
-                }}
+            {/* Apple-style month popover */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setIsMonthMenuOpen((open) => !open)}
+                className="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-700 shadow-sm transition hover:bg-gray-50"
+              >
+                <span>{selectedMonthLabel}</span>
+                <span className="text-gray-400">▾</span>
+              </button>
+
+              {isMonthMenuOpen && (
+                <div
+                  className="absolute left-0 z-20 mt-2 w-56 rounded-2xl border border-gray-200 bg-white p-2 text-sm shadow-xl"
+                  onMouseLeave={() => setIsMonthMenuOpen(false)}
+                >
+                  <div className="px-2 pb-2 text-xs font-semibold uppercase text-gray-400">
+                    Select month
+                  </div>
+                  <div className="max-h-64 space-y-1 overflow-y-auto">
+                    {last12Months.map((m) => {
+                      const mtKey = m.key;
+                      const mtAmount = Number(
+                        monthlyTrends?.[mtKey] || 0,
+                      );
+                      return (
+                        <button
+                          key={m.key}
+                          type="button"
+                          onClick={() => {
+                            setSelectedMonthKey(m.key);
+                            setIsMonthMenuOpen(false);
+                          }}
+                          className={`flex w-full items-center justify-between rounded-xl px-2 py-1.5 text-left text-xs transition ${
+                            m.key === selectedMonthKey
+                              ? "bg-black text-white"
+                              : "text-gray-700 hover:bg-gray-100"
+                          }`}
+                        >
+                          <div className="flex flex-col">
+                            <span>{m.label}</span>
+                            {mtAmount > 0 && (
+                              <span className="text-[10px] text-gray-400">
+                                Spent ${mtAmount.toFixed(0)}
+                              </span>
+                            )}
+                          </div>
+                          {m.key === currentMonthKey && (
+                            <span className="text-[10px] uppercase tracking-wide text-gray-400">
+                              current
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          <p className="text-xs text-gray-500">
+            Snapshot of your budgets and spending for{" "}
+            <span className="font-medium">{selectedMonthLabel}</span>.
+          </p>
+        </div>
+
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="ml-auto rounded-full bg-black px-5 py-2 text-sm font-medium text-white transition hover:bg-blue-600"
+        >
+          + Add Transaction
+        </button>
+      </div>
+
+      {/* Insight card: This month at a glance */}
+      <div className="rounded-2xl border bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 p-5 text-white shadow-md transition hover:shadow-lg">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <div className="text-xs uppercase tracking-wide text-slate-300">
+              This month at a glance
+            </div>
+            <div className="mt-1 flex items-baseline gap-2">
+              <span className="text-3xl font-semibold">
+                ${thisMonthTotal.toFixed(2)}
+              </span>
+              <span className="text-xs text-slate-300">
+                spent in {selectedMonthLabel}
+              </span>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-4 text-xs text-slate-200">
+              <span>
+                Remaining budget:{" "}
+                <span className="font-semibold">
+                  ${remainingBudget.toFixed(2)}
+                </span>
+              </span>
+              {monthlyIncome > 0 && (
+                <span>{incomeUsagePct}% of monthly income used</span>
+              )}
+              {topCategoriesData[0] && (
+                <span>
+                  Top category:{" "}
+                  <span className="font-semibold">
+                    {topCategoriesData[0].name}
+                  </span>{" "}
+                  (${topCategoriesData[0].spent.toFixed(2)})
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4 text-xs md:text-sm">
+            {monthChangePct !== null ? (
+              <div className="flex items-center gap-1 rounded-full bg-slate-800/70 px-3 py-1">
+                <span
+                  className={
+                    monthChangeDirection === "up"
+                      ? "text-red-400"
+                      : monthChangeDirection === "down"
+                      ? "text-emerald-400"
+                      : "text-slate-200"
+                  }
+                >
+                  {monthChangeDirection === "up"
+                    ? "▲"
+                    : monthChangeDirection === "down"
+                    ? "▼"
+                    : "●"}
+                </span>
+                <span>
+                  {Math.abs(monthChangePct)}%
+                  {monthChangeDirection === "up"
+                    ? " higher than last month"
+                    : monthChangeDirection === "down"
+                    ? " lower than last month"
+                    : " same as last month"}
+                </span>
+              </div>
+            ) : (
+              <span className="rounded-full bg-slate-800/70 px-3 py-1">
+                Not enough history to compare yet
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Top summary cards */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <div className="rounded-xl border bg-white p-4 shadow-sm transition hover:shadow-md">
+          <p className="text-xs uppercase text-gray-500">
+            Spend in {selectedMonthLabel}
+          </p>
+          <p className="mt-2 text-2xl font-semibold">
+            ${thisMonthTotal.toFixed(2)}
+          </p>
+          <p className="mt-1 text-xs text-gray-500">
+            Across {thisMonthTransactions.length} transaction
+            {thisMonthTransactions.length === 1 ? "" : "s"}
+          </p>
+        </div>
+
+        <div className="rounded-xl border bg-white p-4 shadow-sm transition hover:shadow-md">
+          <p className="text-xs uppercase text-gray-500">
+            Monthly Net Income
+          </p>
+          <p className="mt-2 text-2xl font-semibold">
+            {monthlyIncome > 0 ? `$${monthlyIncome.toFixed(2)}` : "—"}
+          </p>
+          <p className="mt-1 text-xs text-gray-500">
+            From your finance settings
+          </p>
+        </div>
+
+        <div className="rounded-xl border bg-white p-4 shadow-sm transition hover:shadow-md">
+          <p className="text-xs uppercase text-gray-500">
+            Savings Goal (Monthly)
+          </p>
+          <p className="mt-2 text-2xl font-semibold">
+            {monthlySavingsGoal > 0
+              ? `$${monthlySavingsGoal.toFixed(2)}`
+              : "—"}
+          </p>
+          <div className="mt-3">
+            <div className="mb-1 flex justify-between text-xs text-gray-500">
+              <span>Progress</span>
+              <span>{savingsProgress}%</span>
+            </div>
+            <div className="h-2 w-full rounded-full bg-gray-100">
+              <div
+                className={`h-2 rounded-full ${
+                  savingsProgress <= 50
+                    ? "bg-green-500"
+                    : savingsProgress <= 80
+                    ? "bg-orange-400"
+                    : "bg-red-500"
+                }`}
+                style={{ width: `${savingsProgress}%` }}
               />
             </div>
-          )}
+            <p className="mt-1 text-xs text-gray-500">
+              Approx saving this month:{" "}
+              {monthlyIncome > 0
+                ? `$${Math.max(
+                    monthlyIncome - thisMonthTotal,
+                    0,
+                  ).toFixed(2)}`
+                : "$0"}
+              .
+            </p>
+          </div>
+        </div>
+      </div>
 
-          {/* Article contents */}
-          <div className="p-6">
-            <div className="mb-2 flex items-center gap-2 text-xs text-gray-500">
-              <span className="rounded-full bg-green-100 px-2 py-1 text-green-700">
-                {currentArticle.source}
-              </span>
-              <span>
-                {new Date(currentArticle.published_at).toLocaleDateString()}
+      {/* Middle layout: left (donut + top cats) / right (meters + gauge + news) */}
+      <div className="grid gap-4 xl:grid-cols-3">
+        {/* Left: donut + top categories (take 2 columns on xl) */}
+        <div className="space-y-4 xl:col-span-2">
+          {/* Category donut */}
+          <div className="rounded-xl border bg-white p-4 shadow-sm transition hover:shadow-md">
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="text-sm font-semibold">
+                Spending by Category
+              </h2>
+              <span className="text-xs text-gray-400">
+                {selectedMonthLabel}
               </span>
             </div>
+            {categoryChartData.length === 0 ? (
+              <p className="text-sm text-gray-500">
+                No spending recorded in {selectedMonthLabel}. Add a
+                transaction to see this fill in.
+              </p>
+            ) : (
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={categoryChartData}
+                      dataKey="spent"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={55}
+                      outerRadius={90}
+                      paddingAngle={2}
+                      isAnimationActive
+                    >
+                      {categoryChartData.map((entry, index) => (
+                        <Cell
+                          key={`cell-${entry.id}-${index}`}
+                          fill={
+                            CATEGORY_COLORS[
+                              index % CATEGORY_COLORS.length
+                            ]
+                          }
+                        />
+                      ))}
+                    </Pie>
+                    {/* Center label */}
+                    <text
+                      x="50%"
+                      y="50%"
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      className="fill-gray-800 text-sm"
+                    >
+                      ${thisMonthTotal.toFixed(0)}
+                    </text>
+                    <text
+                      x="50%"
+                      y="58%"
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      className="fill-gray-400 text-[10px]"
+                    >
+                      Total spent
+                    </text>
+                    <Tooltip
+                      formatter={(value, name) => {
+                        if (name === "spent") {
+                          return [
+                            `$${Number(value).toFixed(2)}`,
+                            "Spent",
+                          ];
+                        }
+                        return value;
+                      }}
+                    />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
 
-            <h3 className="mb-3 line-clamp-2 text-xl font-bold text-gray-900">
-              {currentArticle.title}
-            </h3>
-
-            <p className="mb-4 line-clamp-3 text-sm text-gray-600">
-              {currentArticle.description}
-            </p>
-
-            {/* Entities/Stock symbols */}
-            {currentArticle.entities && currentArticle.entities.length > 0 && (
-              <div className="mb-4 flex flex-wrap gap-2">
-                {currentArticle.entities.slice(0, 3).map((entity, idx) => (
-                  <span
-                    key={idx}
-                    className="rounded-md bg-blue-100 px-2 py-1 text-xs font-medium text-blue-700"
+          {/* Top categories mini bar */}
+          <div className="rounded-xl border bg-white p-4 shadow-sm transition hover:shadow-md">
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="text-sm font-semibold">Top categories</h2>
+              <span className="text-xs text-gray-400">
+                By spend in {selectedMonthLabel}
+              </span>
+            </div>
+            {topCategoriesData.length === 0 ? (
+              <p className="text-sm text-gray-500">
+                No category spending yet this month.
+              </p>
+            ) : (
+              <div className="h-40">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={topCategoriesData}
+                    margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
                   >
-                    {entity.symbol}
-                  </span>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis
+                      tickFormatter={(value) => `$${value}`}
+                      domain={[0, "dataMax + 20"]}
+                    />
+                    <Tooltip
+                      formatter={(value) => `$${Number(value).toFixed(2)}`}
+                    />
+                    <Bar dataKey="spent" radius={[4, 4, 0, 0]}>
+                      {topCategoriesData.map((entry, index) => (
+                        <Cell
+                          key={entry.id}
+                          fill={
+                            CATEGORY_COLORS[
+                              index % CATEGORY_COLORS.length
+                            ]
+                          }
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right column: meters + gauge + news */}
+        <div className="space-y-4">
+          {/* Category budget meters */}
+          <div className="rounded-xl border bg-white p-4 shadow-sm transition hover:shadow-md">
+            <h2 className="mb-2 text-sm font-semibold">
+              Category Budget Meters
+            </h2>
+            <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
+              {categoryChartData.length === 0 && (
+                <p className="text-sm text-gray-500">
+                  Set up categories and budgets in Finance Settings to
+                  see progress here.
+                </p>
+              )}
+
+              {categoryChartData.map((cat) => {
+                const pct = cat.usedPct || 0;
+                const riskColorClass =
+                  pct <= 50
+                    ? "bg-green-500"
+                    : pct <= 80
+                    ? "bg-orange-400"
+                    : "bg-red-500";
+
+                const bgTintClass =
+                  pct <= 50
+                    ? "bg-green-50"
+                    : pct <= 80
+                    ? "bg-orange-50"
+                    : "bg-red-50";
+
+                return (
+                  <div
+                    key={cat.id}
+                    className={`space-y-1 rounded-lg px-2 py-1 ${bgTintClass}`}
+                  >
+                    <div className="flex justify-between text-xs">
+                      <span className="font-medium">{cat.name}</span>
+                      <span className="text-gray-600">
+                        ${cat.spent.toFixed(2)} / ${cat.budget.toFixed(2)} (
+                        {pct}%)
+                      </span>
+                    </div>
+                    <div className="h-2 w-full rounded-full bg-gray-100">
+                      <div
+                        className={`h-2 rounded-full ${riskColorClass}`}
+                        style={{ width: `${Math.min(pct, 150)}%` }}
+                      />
+                    </div>
+                    {pct > 80 && (
+                      <div className="text-[10px] text-red-600">
+                        Close to your limit for this category.
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+{/* Monthly remaining budget gauge (odometer style) */}
+<div className="rounded-xl border bg-white p-4 shadow-sm transition hover:shadow-md">
+  <h2 className="mb-1 text-sm font-semibold">Monthly budget gauge</h2>
+  <p className="mb-2 text-xs text-gray-500">
+    Overall spending vs your total monthly budget.
+  </p>
+
+  <div className="flex items-center justify-center">
+    <div className="h-36 w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <RadialBarChart
+          cx="50%"
+          cy="100%"      // pushes arc down so top half only
+          innerRadius="70%"
+          outerRadius="100%"
+          barSize={16}
+          startAngle={180}
+          endAngle={0}
+          data={budgetGaugeData}
+        >
+          {/* BACKGROUND ARC (empty portion) */}
+          <RadialBar
+            dataKey="value"
+            clockWise
+            background={{ fill: "#e5e7eb" }}
+            cornerRadius={8}
+          />
+
+          {/* FOREGROUND ARC (colored progress) */}
+          <RadialBar
+            dataKey="value"
+            clockWise
+            cornerRadius={8}
+            fill={gaugeColor}
+          />
+        </RadialBarChart>
+      </ResponsiveContainer>
+    </div>
+
+    {/* Right side labels */}
+    <div className="ml-4 flex flex-col text-xs text-gray-700">
+      <span className="text-[10px] uppercase text-gray-400">
+        Budget used
+      </span>
+      <span className="text-xl font-semibold">
+        {budgetUsedPctLabel}%
+      </span>
+      <span className="mt-1 text-gray-500">
+        ${thisMonthTotal.toFixed(2)} / ${monthlyBudget.toFixed(2)}
+      </span>
+    </div>
+  </div>
+</div>
+
+          {/* Market & Money News */}
+          <div className="rounded-xl border bg-white p-4 shadow-sm transition hover:shadow-md">
+            <div className="mb-1 flex items-center justify-between">
+              <div>
+                <h2 className="text-sm font-semibold">
+                  Market &amp; Money News
+                </h2>
+                <p className="text-[11px] text-gray-500">
+                  Headlines to keep you in the loop.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 text-[10px]">
+                <span
+                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 ${
+                    newsStatus === "live"
+                      ? "bg-emerald-50 text-emerald-600"
+                      : "bg-gray-50 text-gray-500"
+                  }`}
+                >
+                  <span
+                    className={`h-1.5 w-1.5 rounded-full ${
+                      newsStatus === "live"
+                        ? "bg-emerald-500"
+                        : "bg-gray-400"
+                    }`}
+                  />
+                  {newsStatus === "live" ? "LIVE" : "Sample"}
+                </span>
+              </div>
+            </div>
+
+            {newsItems.length === 0 ? (
+              <p className="text-xs text-gray-500">
+                Loading headlines…
+              </p>
+            ) : (
+              <div className="mt-2 max-h-56 space-y-1.5 overflow-y-auto pr-1">
+                {newsItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex flex-col rounded-lg px-2 py-1.5 text-xs hover:bg-gray-50"
+                  >
+                    <div className="mb-0.5 flex items-center gap-2 text-[10px] text-gray-500">
+                      <span className="rounded-full bg-gray-100 px-2 py-0.5 font-medium">
+                        {item.source}
+                      </span>
+                      {item.timeAgo && (
+                        <span className="text-gray-400">
+                          {item.timeAgo}
+                        </span>
+                      )}
+                    </div>
+                    <div className="line-clamp-1 font-medium text-gray-800">
+                      {item.headline}
+                    </div>
+                    {item.topic && (
+                      <div className="text-[10px] text-gray-500">
+                        {item.topic}
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
             )}
-
-            <a
-              href={currentArticle.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-sm font-medium text-green-600 hover:text-green-700"
-            >
-              Read full article
-              <svg
-                className="h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                />
-              </svg>
-            </a>
           </div>
         </div>
-
-        {/* Navigation arrows */}
-        <button
-          onClick={goToPrevious}
-          className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-2 shadow-lg transition-all hover:scale-110 hover:bg-white"
-          aria-label="Previous article"
-        >
-          <svg
-            className="h-5 w-5 text-gray-700"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15 19l-7-7 7-7"
-            />
-          </svg>
-        </button>
-
-        <button
-          onClick={goToNext}
-          className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-2 shadow-lg transition-all hover:scale-110 hover:bg-white"
-          aria-label="Next article"
-        >
-          <svg
-            className="h-5 w-5 text-gray-700"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 5l7 7-7 7"
-            />
-          </svg>
-        </button>
-
-        {/* Dot indicators */}
-        <div className="mt-4 flex justify-center gap-2">
-          {news.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => goToSlide(index)}
-              className={`h-2 rounded-full transition-all ${
-                index === currentIndex
-                  ? "w-8 bg-green-600"
-                  : "w-2 bg-gray-300 hover:bg-gray-400"
-              }`}
-              aria-label={`Go to article ${index + 1}`}
-            />
-          ))}
-        </div>
       </div>
-    </div>
-  );
-}
 
-export default function Dashboard() {
-  const [monthlyIncome, setMonthlyIncome] = useState(0);
-  const [totalSpent, setTotalSpent] = useState(0);
-  const [savingsGoal, setSavingsGoal] = useState(0);
-  const [categoryData, setCategoryData] = useState([]);
-  const [budgetData, setBudgetData] = useState([]);
-  const [trendData, setTrendData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  //backend health check
-  const [backendStatus, setBackendStatus] = useState("checking");
-
-  // memoize category colors to prevent re-creation
-  const categoryColors = useMemo(
-    () => ({
-      housing: "#3B82F6",
-      utilities: "#8B5CF6",
-      entertainment: "#EC4899",
-      insurance: "#EF4444",
-      food: "#10B981",
-      transportation: "#F59E0B",
-      healthcare: "#06B6D4",
-      other: "#6B7280",
-    }),
-    [],
-  );
-
-  const processSpendingData = useCallback(
-    (spending, yearMonth) => {
-      //pass in the month
-      const categories = {};
-      let total = 0;
-
-      Object.values(spending).forEach((transaction) => {
-        if (!transaction.date.startsWith(yearMonth)) return; //dont add to total if not the current month
-        const category = (transaction.category || "other").toLowerCase();
-        const amount = parseFloat(transaction.amount) || 0;
-
-        categories[category] = (categories[category] || 0) + amount;
-        total += amount;
-      });
-
-      const chartData = Object.entries(categories).map(([name, value]) => ({
-        name,
-        value: parseFloat(value.toFixed(2)),
-        percentage: Math.round((value / total) * 100),
-        color: categoryColors[name] || categoryColors.other,
-      }));
-
-      setCategoryData(chartData);
-      setTotalSpent(parseFloat(total.toFixed(2)));
-    },
-    [categoryColors],
-  );
-
-  const processBudgetData = useCallback((budgets, spending) => {
-    const spendingByCategory = {};
-
-    if (spending) {
-      Object.values(spending).forEach((transaction) => {
-        const category = transaction.category || "other";
-        const amount = parseFloat(transaction.amount) || 0;
-        spendingByCategory[category] =
-          (spendingByCategory[category] || 0) + amount;
-      });
-    }
-
-    const chartData = Object.entries(budgets).map(
-      ([category, budgetAmount]) => ({
-        category,
-        actual: parseFloat((spendingByCategory[category] || 0).toFixed(2)),
-        budget: parseFloat(budgetAmount),
-      }),
-    );
-
-    setBudgetData(chartData);
-  }, []);
-
-  const processTrendData = useCallback((trends) => {
-    const chartData = Object.entries(trends)
-      .map(([month, amount]) => ({
-        month,
-        spending: parseFloat(amount),
-      }))
-      .sort((a, b) => new Date(a.month) - new Date(b.month))
-      .slice(-5); // Last x months
-
-    setTrendData(chartData);
-  }, []);
-
-  useEffect(() => {
-    //Use commented out code if want to test the "dummy test user"
-    //const TEST_UID = "iEQ13Kho4PfaRWY2n3d8";
-    const db = getFirestore();
-    const auth = getAuth();
-
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        console.log("User is not signed in yet");
-        setLoading(true);
-        return;
-      }
-      console.log("Logged in as:", user.uid);
-
-      const docRef = doc(db, "users", user.uid);
-      const currentMonthYear = new Date().toISOString().slice(0, 7);
-      //const docRef = doc(db, "testUser", TEST_UID);
-
-      const unsubscribeDoc = onSnapshot(
-        docRef,
-        (docSnap) => {
-          try {
-            if (docSnap.exists()) {
-              const data = docSnap.data();
-
-              setMonthlyIncome(data.monthlyIncome || 0);
-              setSavingsGoal(data.savingsGoal || 1000);
-
-              if (data.spending) {
-                processSpendingData(data.spending, currentMonthYear);
-              }
-              if (data.budgets) {
-                processBudgetData(data.budgets, data.spending);
-              }
-              if (data.monthlyTrends) {
-                processTrendData(data.monthlyTrends);
-              }
-            } else {
-              console.log("No document found");
-              // Empty data default
-              setCategoryData([]);
-              setBudgetData([]);
-              setTrendData([]);
-              setTotalSpent(0);
-            }
-
-            setLoading(false);
-          } catch (err) {
-            console.error("Error processing data:", err);
-            setError("Failed to load data");
-            setLoading(false);
-          }
-        },
-        (err) => {
-          console.error("Firestore error:", err);
-          setError("Failed to connect to database: " + err.message);
-          setLoading(false);
-        },
-      );
-      return () => unsubscribeDoc();
-    });
-    return () => unsubscribeAuth();
-  }, [processSpendingData, processBudgetData, processTrendData]);
-
-  //for server status monitoring, keeping it now for testing and debugging purposes and might keep it after development phase ----------do not remove it---------------
-  useEffect(() => {
-    const base = process.env.REACT_APP_API_BASE_URL;
-    if (!base) {
-      setBackendStatus("env-missing");
-      return;
-    }
-    // console.log("Testing connection to backend:", base); <-- used this while making frontend talk to backend (for testing purposes)
-    fetch(`${base}/health`)
-      .then((r) => r.json())
-      .then((d) => setBackendStatus(d?.status || "unknown"))
-      .catch(() => setBackendStatus("down"));
-  }, []);
-
-  // ---------------- Dev-only backend connection test ----------------
-  // This fetch is for confirming frontend↔backend link during development.
-  // It can be safely ignored in production.
-  useEffect(() => {
-    const base = process.env.REACT_APP_API_BASE_URL;
-    if (!base) return;
-
-    fetch(`${base}/api/testUser`)
-      .then((res) => res.json())
-      .then((data) => {
-        console.log("Test API Response:", data);
-      })
-      .catch((err) => {
-        console.error("Error connecting to test API:", err);
-      });
-  }, []);
-
-  const handleSignOut = async () => {
-    try {
-      await signOut(auth);
-      console.log("User signed out");
-      window.location.href = "/login";
-    } catch (error) {
-      console.error("Error signing out:", error);
-    }
-  };
-
-  // Custom label for pie chart
-  const renderCustomLabel = (entry) => {
-    return `${entry.name}: ${entry.percentage}%`;
-  };
-
-  if (loading) {
-    return (
-      <div className="flex h-screen flex-col items-center justify-center bg-green-50">
-        <div className="text-center">
-          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-green-600"></div>
-          <p className="text-gray-700">Loading your financial data...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex h-screen flex-col items-center justify-center bg-green-50">
-        <div className="max-w-md rounded-lg border border-red-200 bg-red-50 p-6">
-          <p className="mb-2 font-semibold text-red-800">Error</p>
-          <p className="text-red-600">{error}</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <>
-      <div className="min-h-screen bg-green-50 p-6">
-        <div className="mx-auto max-w-7xl">
-          {/* Header */}
-          <div className="mb-8 flex flex-col items-center">
-            <h1 className="mb-4 text-6xl font-bold text-green-600">
-              Dashboard
-            </h1>
-            <p className="text-black-700 mb-6 text-3xl">
-              Welcome to Obfin: Finance Manager & Advisor
+      {/* Bottom: Spending trend + Recent activity */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        {/* Spending trend */}
+        <div className="rounded-xl border bg-white p-4 shadow-sm transition hover:shadow-md lg:col-span-2">
+          <div className="mb-1 flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-semibold">Spending Trend</h2>
+              <p className="text-xs text-gray-500">{trendSubtitle}</p>
+            </div>
+            <span className="text-xs text-gray-400">Last 6 months</span>
+          </div>
+          {monthlyTrendData.length === 0 ? (
+            <p className="text-sm text-gray-500">
+              We’ll show a trend once you have spending across multiple
+              months.
             </p>
-
-            {/* Backend status pill, great for quick visual confirmation, will keep it while developing, but later we can hide it  behind a dev-only flag ------do not remove it--------- */}
-
-            <div className="mb-4">
-              <span
-                className={
-                  "inline-flex items-center rounded-full px-3 py-1 text-xs font-medium " +
-                  (backendStatus === "ok"
-                    ? "bg-green-100 text-green-700"
-                    : backendStatus === "checking"
-                      ? "bg-yellow-100 text-yellow-700"
-                      : backendStatus === "env-missing"
-                        ? "bg-gray-100 text-gray-700"
-                        : "bg-red-100 text-red-700")
-                }
-                title={
-                  backendStatus === "env-missing"
-                    ? "REACT_APP_API_BASE_URL not set"
-                    : ""
-                }
-              >
-                {backendStatus === "ok" && "Backend: ok"}
-                {backendStatus === "checking" && "Backend: checking…"}
-                {backendStatus === "down" && "Backend: unreachable"}
-                {backendStatus === "env-missing" && "Backend: env missing"}
-                {backendStatus === "unknown" && "Backend: unknown"}
-              </span>
-            </div>
-
-            <button
-              onClick={handleSignOut}
-              className="rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700"
-            >
-              Sign Out
-            </button>
-          </div>
-          {/* News Segment*/}
-
-          <div className="mb-8">
-            <News />
-          </div>
-
-          {/* Summary Cards */}
-          <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
-            <div className="rounded-lg bg-white p-6 shadow-sm">
-              <p className="mb-2 text-sm text-gray-600">
-                Total Spent This Month
-              </p>
-              <p className="text-3xl font-bold text-gray-900">
-                ${totalSpent.toFixed(2)}
-              </p>
-            </div>
-            <div className="rounded-lg bg-white p-6 shadow-sm">
-              <p className="mb-2 text-sm text-gray-600">Monthly Income</p>
-              <p className="text-3xl font-bold text-gray-900">
-                ${monthlyIncome.toFixed(2)}
-              </p>
-            </div>
-            <div className="rounded-lg bg-white p-6 shadow-sm">
-              <p className="mb-2 text-sm text-gray-600">
-                Savings (Goal: ${savingsGoal})
-              </p>
-              <p
-                className={`text-3xl font-bold ${monthlyIncome - totalSpent < 0 ? "text-red-600" : "text-green-600"}`}
-              >
-                ${(monthlyIncome - totalSpent).toFixed(2)}
-              </p>
-            </div>
-          </div>
-
-          {/* Charts Row */}
-          <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
-            {/* Spending by Category */}
-            <div className="rounded-lg bg-white p-6 shadow-sm">
-              <h2 className="mb-4 text-lg font-semibold text-gray-800">
-                Spending by Category
-              </h2>
-              {categoryData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={categoryData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={renderCustomLabel}
-                      outerRadius={100}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {categoryData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value) => `$${value}`} />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex h-64 items-center justify-center text-gray-500">
-                  No spending data available
-                </div>
-              )}
-            </div>
-
-            {/* Budget vs Actual */}
-            <div className="rounded-lg bg-white p-6 shadow-sm">
-              <h2 className="mb-4 text-lg font-semibold text-gray-800">
-                Budget vs Actual Spending
-              </h2>
-              {budgetData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={budgetData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="category" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="actual" fill="#3B82F6" name="Actual" />
-                    <Bar dataKey="budget" fill="#9CA3AF" name="Budget" />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex h-64 items-center justify-center text-gray-500">
-                  No budget data available
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Spending Trend */}
-          <div className="rounded-lg bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-lg font-semibold text-gray-800">
-              Spending Trend (Last 5 Months)
-            </h2>
-            {trendData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={trendData}>
+          ) : (
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={monthlyTrendData}
+                  margin={{ top: 10, right: 20, left: 0, bottom: 10 }}
+                >
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Line
-                    type="monotone"
-                    dataKey="spending"
-                    stroke="#3B82F6"
-                    strokeWidth={2}
-                    dot={{ fill: "#3B82F6", r: 4 }}
-                    name="spending"
+                  <YAxis
+                    tickFormatter={(value) => `$${value}`}
+                    domain={[0, "dataMax + 20"]}
                   />
-                </LineChart>
+                  <Tooltip
+                    formatter={(value) => `$${Number(value).toFixed(2)}`}
+                  />
+                  <Legend />
+                  <Bar
+                    dataKey="amount"
+                    name="Total Spent"
+                    radius={[4, 4, 0, 0]}
+                    barSize={40}
+                  />
+                </BarChart>
               </ResponsiveContainer>
-            ) : (
-              <div className="flex h-64 items-center justify-center text-gray-500">
-                No trend data available
-              </div>
-            )}
-          </div>
+            </div>
+          )}
+        </div>
+
+        {/* Recent activity */}
+        <div className="rounded-xl border bg-white p-4 shadow-sm transition hover:shadow-md">
+          <h2 className="mb-2 text-sm font-semibold">Recent activity</h2>
+          {recentTransactions.length === 0 ? (
+            <p className="text-sm text-gray-500">
+              No transactions recorded yet.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {recentTransactions.map((tx, index) => {
+                const catId = normalizeId(tx.category || "uncategorized");
+                const colorIndex =
+                  categoryIds.indexOf(catId) >= 0
+                    ? categoryIds.indexOf(catId)
+                    : index;
+                const dotColor =
+                  CATEGORY_COLORS[
+                    colorIndex % CATEGORY_COLORS.length
+                  ];
+                const dateLabel = tx.date || "-";
+                const nameLabel = getCategoryName(catId);
+
+                return (
+                  <div
+                    key={`${tx.date}-${tx.description}-${index}`}
+                    className="flex items-center justify-between rounded-lg bg-gray-50 px-2 py-1.5 text-xs"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="inline-block h-2.5 w-2.5 rounded-full"
+                        style={{ backgroundColor: dotColor }}
+                      />
+                      <div className="flex flex-col">
+                        <span className="font-medium">
+                          {tx.description || "(No description)"}
+                        </span>
+                        <span className="text-[10px] text-gray-500">
+                          {nameLabel} • {dateLabel}
+                        </span>
+                      </div>
+                    </div>
+                    <span className="font-semibold">
+                      ${tx.amount.toFixed(2)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* include completely separate chatbot component */}
-      <Chatbot />
-    </>
+      {/* Add Transaction Modal */}
+      <AddTransactionModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onAdd={handleAddTransaction}
+        onChange={setTransactionDraft}
+        // Pass IDs as categories because that's what we store in spending.category
+        categories={categoryIds}
+      />
+    </div>
   );
 }
