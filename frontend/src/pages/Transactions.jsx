@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { getAuth } from "firebase/auth";
+import { collection, doc, getDoc, increment, updateDoc } from "firebase/firestore";
+import { useEffect, useState } from "react";
+import { db } from "../firebase/firebase";
+import AddTransactionModal from "./transactions/AddTransactionModal";
 import TaxHistoryTab from "./transactions/TaxHistoryTab";
 import TransactionsTab from "./transactions/TransactionsTab";
-import AddTransactionModal from "./transactions/AddTransactionModal";
-import { collection, doc, updateDoc, increment } from "firebase/firestore";
-import { db } from "../firebase/firebase";
-import { getAuth } from "firebase/auth";
 
 export default function Transactions() {
   const [activeTab, setActiveTab] = useState("transactions");
@@ -16,37 +16,66 @@ export default function Transactions() {
     amount: "",
     description: "",
   });
-  const [transactionsUpdated, setTransactionsUpdated] = useState(false);
 
+  const [transactionsUpdated, setTransactionsUpdated] = useState(false);
+  const [categories, setCategories] = useState([]); // store categories here
+
+  const auth = getAuth();
+  const user = auth.currentUser;
+
+  // ===================== FETCH USER CATEGORIES =====================
+  useEffect(() => {
+    async function loadCategories() {
+      if (!user) return;
+
+      const userRef = doc(db, "users", user.uid);
+      const snap = await getDoc(userRef);
+
+      if (snap.exists()) {
+        const data = snap.data();
+        const cats = data.budgets?.categories || [];
+
+        // Map to names only: ["Food", "Entertainment", ...]
+        const categoryNames = cats.map((c) => c.name);
+
+        setCategories(categoryNames);
+      }
+    }
+
+    loadCategories();
+  }, [user]);
+
+  // ===================== HANDLE FORM CHANGE =====================
   const handleChange = (updatedValues) => {
     setTransaction(updatedValues);
   };
 
+  // ===================== ADD TRANSACTION =====================
   async function handleAddTransaction() {
-    // logic to add transaction goes here
-    if (transaction.amount === "" || Number(transaction.amount) < 0) {
-      alert("Amount must have a positive number!");
+    if (!transaction.amount || Number(transaction.amount) <= 0) {
+      alert("Amount must be a positive number!");
       return;
     }
-    if (transaction.description === "") {
-      alert("Description can not be empty!");
+    if (!transaction.description) {
+      alert("Description cannot be empty!");
       return;
     }
-    if (transaction.date === "") {
-      alert("Date can not be empty!");
+    if (!transaction.date) {
+      alert("Date cannot be empty!");
       return;
     }
-    if (transaction.category === "") {
-      alert("Category can not be empty!");
+    if (!transaction.category) {
+      alert("Category cannot be empty!");
       return;
     }
-    const auth = getAuth();
+
     const user = auth.currentUser;
     const month = transaction.date.substring(5, 7);
     const year = transaction.date.substring(0, 4);
-    const transId = doc(collection(db, "users", user.uid, "spending")).id; //generates a unique id
+    const transId = doc(collection(db, "users", user.uid, "spending")).id;
 
     const extractYearMonth = `${year}-${month}`;
+
     try {
       await updateDoc(doc(db, "users", user.uid), {
         [`spending.${transId}`]: {
@@ -54,20 +83,21 @@ export default function Transactions() {
           category: transaction.category,
           date: transaction.date,
           description: transaction.description,
+          createdAt: Date.now(),
         },
-        [`monthlyTrends.${extractYearMonth}`]: increment(
-          Number(transaction.amount),
-        ),
+        [`monthlyTrends.${extractYearMonth}`]:
+          increment(Number(transaction.amount)),
       });
+
       console.log("Transaction added!");
-      setTransactionsUpdated((prev) => !prev); // trigger refresh in child
+      setTransactionsUpdated((prev) => !prev);
       setIsModalOpen(false);
+
       setTransaction({
         date: "",
         category: "",
         amount: "",
         description: "",
-        createdAt: Date.now(),
       });
     } catch (error) {
       console.error("Error saving transaction", error);
@@ -105,6 +135,7 @@ export default function Transactions() {
             Tax History
           </button>
         </div>
+
         <button
           onClick={() => setIsModalOpen(true)}
           className="font-small -mt-2 ml-auto w-1/4 rounded-full bg-black py-1 text-white transition hover:bg-green-600"
@@ -125,6 +156,7 @@ export default function Transactions() {
         onClose={() => setIsModalOpen(false)}
         onAdd={handleAddTransaction}
         onChange={handleChange}
+        categories={categories}   // 🔥 PASS CATEGORIES TO MODAL
       />
     </div>
   );

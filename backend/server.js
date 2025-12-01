@@ -565,6 +565,27 @@ app.delete("/api/transactions/:uid/:transactionId", async (req, res) => {
       .json({ error: "Failed to delete transaction", details: error.message });
   }
 });
+// -------- Get User Budget Categories --------
+app.get("/api/categories/:uid", async (req, res) => {
+  try {
+    const uid = req.params.uid;
+
+    const userRef = admin.firestore().collection("users").doc(uid);
+    const userDoc = await userRef.get();
+
+    if (!userDoc.exists) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const data = userDoc.data();
+    const categories = Object.keys(data.budgetCategories || {});
+
+    return res.json({ categories });
+  } catch (err) {
+    console.error("Error retrieving categories:", err);
+    return res.status(500).json({ error: "Failed to load categories" });
+  }
+});
 
 // 404 handler (for unknown routes)
 app.use((req, res) => {

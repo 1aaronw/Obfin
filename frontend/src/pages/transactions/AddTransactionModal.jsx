@@ -1,16 +1,22 @@
 import { Dialog, DialogPanel, DialogTitle } from "@headlessui/react";
-import { useRef } from "react";
-import { useState, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function AddTransactionModal({
   isOpen,
   onClose,
   onAdd,
   onChange,
+  categories = [], 
 }) {
   const completeButtonRef = useRef(null);
-  //only want the format yyyy/dd/mm
   const today = new Date().toISOString().split("T")[0];
+
+  const [transaction, setTransaction] = useState({
+    date: "",
+    category: "",
+    amount: "",
+    description: "",
+  });
 
   useEffect(() => {
     if (isOpen) {
@@ -23,52 +29,29 @@ export default function AddTransactionModal({
     }
   }, [isOpen]);
 
-  //only add to database if user selects the option
-  const [transaction, setTransaction] = useState({
-    date: "",
-    category: "",
-    amount: "",
-    description: "",
-  });
-
-  const [errors, setErrors] = useState({
-    date: "",
-    category: "",
-    amount: "",
-    description: "",
-  });
-
   const handleChange = (e) => {
-    const { id, value } = e.target; //specific <input> element that triggered the event
-    //regex expression. must start with a digit
-    const updated = { ...transaction, [id]: value }; //creates a new object that copies the exisiting transaction state but updates the only the field that changed
-    //update  with the new object
+    const { id, value } = e.target;
+    const updated = { ...transaction, [id]: value };
     setTransaction(updated);
-    onChange(updated); // makes the changes propagate upwards
+    onChange(updated);
+  };
+
+  const handleAmount = (e) => {
+    let value = e.target.value;
+
+    // Allow decimals
+    if (value === "" || /^[0-9]*\.?[0-9]*$/.test(value)) {
+      const updated = { ...transaction, amount: value };
+      setTransaction(updated);
+      onChange(updated);
+    }
   };
 
   const handleDescription = (e) => {
     const value = e.target.value;
-    if (value.length <= 50) {
-      //ensures we are working with correct value
-      setTransaction((prev) => ({ ...prev, description: e.target.value }));
+    if (value.length <= 100) {
+      setTransaction({ ...transaction, description: value });
       onChange({ ...transaction, description: value });
-    }
-  };
-  //extracts all of the words by the spaces and splits it to an array
-  const charCount = transaction.description.length;
-
-  const overLimit = charCount > 50;
-
-  const handleAmount = (e) => {
-    const { id, value } = e.target; //spacific <input> element that triggered the event
-    //regex expression. must start with a digit
-    if (value === "" || /^[0-9]+$/.test(value)) {
-      const updated = { ...transaction, [id]: value }; //creates a new object that copies the exisiting budget state but updates the only the field that changed
-      //update the component Budget with the new object
-      setTransaction(updated);
-      onChange(updated); // makes the changes propagate upwards
-      setErrors({ ...errors, [id]: "" }); // clear error
     }
   };
 
@@ -85,18 +68,20 @@ export default function AddTransactionModal({
         </DialogTitle>
 
         <form className="space-y-4">
+          {/* DATE */}
           <div>
             <label className="block text-sm font-medium">Date</label>
             <input
               type="date"
-              value={transaction.date}
-              onChange={handleChange}
               id="date"
               max={today}
+              value={transaction.date}
+              onChange={handleChange}
               className="mt-1 w-full rounded border p-2"
             />
           </div>
 
+          {/* CATEGORY */}
           <div>
             <label className="block text-sm font-medium">Category</label>
             <select
@@ -108,49 +93,49 @@ export default function AddTransactionModal({
               <option value="" disabled hidden>
                 Select Category
               </option>
-              <option value="housing">Housing</option>
-              <option value="food">Food</option>
-              <option value="insurance">Insurance</option>
-              <option value="utilities">Utilities</option>
-              <option value="entertainment">Entertainment</option>
-              <option value="miscellaneous">Miscellaneous</option>
+
+              {categories.length === 0 && (
+                <option disabled>No categories found</option>
+              )}
+
+              {categories.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
             </select>
           </div>
 
+          {/* AMOUNT */}
           <div>
             <label className="block text-sm font-medium">Amount ($)</label>
             <input
-              type="number"
+              type="text"
               id="amount"
+              placeholder="e.g. 28.50"
               value={transaction.amount}
               onChange={handleAmount}
               className="mt-1 w-full rounded border p-2"
             />
           </div>
 
+          {/* DESCRIPTION */}
           <div>
             <label className="block text-sm font-medium">Description</label>
-            <input
-              type="text"
+            <textarea
               id="description"
-              onChange={handleDescription}
               value={transaction.description}
-              className={`mt-1 w-full rounded border p-2 ${
-                overLimit ? "border-red-500" : "border-gray-300"
-              }`}
+              onChange={handleDescription}
+              className="mt-1 w-full rounded border p-2"
+              rows={2}
+              placeholder="Optional note about this transaction"
             />
-            {overLimit && (
-              <p className="mt-1 text-sm text-red-500">
-                Description must be 100 characters or fewer.
-              </p>
-            )}
-            <div className="mt-1 text-right text-sm">
-              <span className={overLimit ? "text-red-500" : "text-gray-500"}>
-                {charCount} / 50 characters
-              </span>
+            <div className="mt-1 text-right text-sm text-gray-500">
+              {transaction.description.length} / 100 characters
             </div>
           </div>
 
+          {/* BUTTONS */}
           <div className="flex justify-end space-x-2">
             <button
               type="button"
