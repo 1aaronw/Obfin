@@ -1,5 +1,11 @@
 import { getAuth } from "firebase/auth";
-import { collection, doc, getDoc, increment, updateDoc } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDoc,
+  increment,
+  updateDoc,
+} from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { db } from "../firebase/firebase";
 import AddTransactionModal from "./transactions/AddTransactionModal";
@@ -85,8 +91,9 @@ export default function Transactions() {
           description: transaction.description,
           createdAt: Date.now(),
         },
-        [`monthlyTrends.${extractYearMonth}`]:
-          increment(Number(transaction.amount)),
+        [`monthlyTrends.${extractYearMonth}`]: increment(
+          Number(transaction.amount),
+        ),
       });
 
       console.log("Transaction added!");
@@ -156,7 +163,7 @@ export default function Transactions() {
         onClose={() => setIsModalOpen(false)}
         onAdd={handleAddTransaction}
         onChange={handleChange}
-        categories={categories}   // 🔥 PASS CATEGORIES TO MODAL
+        categories={categories} // 🔥 PASS CATEGORIES TO MODAL
       />
     </div>
   );
