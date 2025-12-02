@@ -165,7 +165,11 @@ app.post("/api/gemini/chat", async (request, response) => {
 
       transactions.push(entry);
 
-      if (entry.type === "expense" && entry.rawDate && entry.rawDate >= thirtyDaysAgo) {
+      if (
+        entry.type === "expense" &&
+        entry.rawDate &&
+        entry.rawDate >= thirtyDaysAgo
+      ) {
         last30DaysSpend += amount;
         categoryTotals[entry.category] =
           (categoryTotals[entry.category] || 0) + amount;
@@ -173,8 +177,7 @@ app.post("/api/gemini/chat", async (request, response) => {
     });
 
     transactions.sort(
-      (a, b) =>
-        (b.rawDate?.getTime?.() || 0) - (a.rawDate?.getTime?.() || 0)
+      (a, b) => (b.rawDate?.getTime?.() || 0) - (a.rawDate?.getTime?.() || 0),
     );
 
     const transactionsString =
@@ -184,7 +187,7 @@ app.post("/api/gemini/chat", async (request, response) => {
             .map(
               (t, i) =>
                 `${i + 1}. ${t.date} — ${t.type.toUpperCase()} $${t.amount.toFixed(
-                  2
+                  2,
                 )} in ${t.category}${t.description ? ` (${t.description})` : ""}`,
             )
             .join("\n")
@@ -198,7 +201,7 @@ app.post("/api/gemini/chat", async (request, response) => {
         : "No category breakdown available.";
 
     // ===================== GEMINI CONTEXT TEXT =====================
-const contextText = `
+    const contextText = `
 You are Obfin’s AI Financial Advisor.
 
 Your tone must always follow these rules:
@@ -247,9 +250,7 @@ Do NOT write paragraphs or long explanations. Keep it clean and human.
       "NO_RESPONSE_FOUND";
 
     const inputTokens = estimateInputTokens(contextText);
-    console.log(
-      `Chat UID:${uid} inputTokens:${inputTokens}`
-    );
+    console.log(`Chat UID:${uid} inputTokens:${inputTokens}`);
 
     await updateChatRateLimit(uid);
 

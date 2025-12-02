@@ -6,7 +6,7 @@ export default function AddTransactionModal({
   onClose,
   onAdd,
   onChange,
-  categories = [], 
+  categories = [],
 }) {
   const completeButtonRef = useRef(null);
   const today = new Date().toISOString().split("T")[0];

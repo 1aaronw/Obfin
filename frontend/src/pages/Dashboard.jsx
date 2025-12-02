@@ -91,7 +91,9 @@ function getPreviousMonthKey(key) {
 }
 
 function normalizeId(id) {
-  return String(id || "").toLowerCase().trim();
+  return String(id || "")
+    .toLowerCase()
+    .trim();
 }
 
 // Fallback/sample news in case API fails
@@ -266,9 +268,7 @@ export default function Dashboard() {
   }));
 
   const thisMonthTransactions = allSpendingEntries.filter((tx) =>
-    typeof tx.date === "string"
-      ? tx.date.startsWith(selectedMonthKey)
-      : false,
+    typeof tx.date === "string" ? tx.date.startsWith(selectedMonthKey) : false,
   );
 
   const thisMonthTotal = thisMonthTransactions.reduce(
@@ -280,8 +280,7 @@ export default function Dashboard() {
   const spendByCategory = {};
   thisMonthTransactions.forEach((tx) => {
     const catId = tx.normCategory || "uncategorized";
-    spendByCategory[catId] =
-      (spendByCategory[catId] || 0) + (tx.amount || 0);
+    spendByCategory[catId] = (spendByCategory[catId] || 0) + (tx.amount || 0);
   });
 
   // Helper: find category display name by id
@@ -304,8 +303,8 @@ export default function Dashboard() {
       budget > 0
         ? Math.round((spent / budget) * 100)
         : spent > 0
-        ? 150 // treat as way over budget visually
-        : 0;
+          ? 150 // treat as way over budget visually
+          : 0;
 
     categoryMap[catId] = {
       id: catId,
@@ -354,49 +353,46 @@ export default function Dashboard() {
       ? Math.min(
           100,
           Math.round(
-            (Math.max(monthlyIncome - thisMonthTotal, 0) /
-              monthlySavingsGoal) *
+            (Math.max(monthlyIncome - thisMonthTotal, 0) / monthlySavingsGoal) *
               100,
           ),
         )
       : 0;
 
-// 8) Monthly budget gauge (new odometer-style semi-circle)
-const totalCategoryBudget = categories.reduce(
-  (sum, cat) => sum + Number(cat.amount || 0),
-  0
-);
+  // 8) Monthly budget gauge (new odometer-style semi-circle)
+  const totalCategoryBudget = categories.reduce(
+    (sum, cat) => sum + Number(cat.amount || 0),
+    0,
+  );
 
-// fallback budget = income - savingsGoal
-const fallbackBudget = Math.max(monthlyIncome - monthlySavingsGoal, 0);
+  // fallback budget = income - savingsGoal
+  const fallbackBudget = Math.max(monthlyIncome - monthlySavingsGoal, 0);
 
-// total usable monthly budget:
-const monthlyBudget =
-  totalCategoryBudget || fallbackBudget || thisMonthTotal || 1;
+  // total usable monthly budget:
+  const monthlyBudget =
+    totalCategoryBudget || fallbackBudget || thisMonthTotal || 1;
 
-// raw % used
-const rawBudgetPct = (thisMonthTotal / monthlyBudget) * 100;
-const budgetUsedPctLabel = Math.round(rawBudgetPct || 0);
+  // raw % used
+  const rawBudgetPct = (thisMonthTotal / monthlyBudget) * 100;
+  const budgetUsedPctLabel = Math.round(rawBudgetPct || 0);
 
-// For the gauge arc (0 → 180 degrees mapped to 0 → 100%)
-const gaugePercentClamped = Math.min(
-  100,
-  Math.max(0, rawBudgetPct || 0)
-);
+  // For the gauge arc (0 → 180 degrees mapped to 0 → 100%)
+  const gaugePercentClamped = Math.min(100, Math.max(0, rawBudgetPct || 0));
 
-// dynamic color thresholds
-let gaugeColor = "#22c55e"; // green
-if (gaugePercentClamped > 90) gaugeColor = "#ef4444"; // red
-else if (gaugePercentClamped > 60) gaugeColor = "#f97316"; // orange
+  // dynamic color thresholds
+  let gaugeColor = "#22c55e"; // green
+  if (gaugePercentClamped > 90)
+    gaugeColor = "#ef4444"; // red
+  else if (gaugePercentClamped > 60) gaugeColor = "#f97316"; // orange
 
-// Recharts needs a value out of 100
-const budgetGaugeData = [
-  {
-    name: "Spent",
-    value: gaugePercentClamped,
-    fill: gaugeColor,
-  },
-];
+  // Recharts needs a value out of 100
+  const budgetGaugeData = [
+    {
+      name: "Spent",
+      value: gaugePercentClamped,
+      fill: gaugeColor,
+    },
+  ];
 
   // 9) Month-over-month change (for insight card + trend subtitle)
   const prevMonthKey = getPreviousMonthKey(selectedMonthKey);
@@ -411,10 +407,10 @@ const budgetGaugeData = [
     monthChangePct === null
       ? "none"
       : monthChangePct > 0
-      ? "up"
-      : monthChangePct < 0
-      ? "down"
-      : "same";
+        ? "up"
+        : monthChangePct < 0
+          ? "down"
+          : "same";
 
   // 10) Top categories mini bar data (top 3 by spend)
   const topCategoriesData = [...categoryChartData]
@@ -434,22 +430,20 @@ const budgetGaugeData = [
   // Small helpers
   const remainingBudget = Math.max(monthlyBudget - thisMonthTotal, 0);
   const incomeUsagePct =
-    monthlyIncome > 0
-      ? Math.round((thisMonthTotal / monthlyIncome) * 100)
-      : 0;
+    monthlyIncome > 0 ? Math.round((thisMonthTotal / monthlyIncome) * 100) : 0;
 
   const trendSubtitle =
     monthChangePct === null
       ? "Total spent each month based on all recorded transactions."
       : monthChangeDirection === "up"
-      ? `Spending is ${Math.abs(
-          monthChangePct,
-        )}% higher than the previous month.`
-      : monthChangeDirection === "down"
-      ? `Spending is ${Math.abs(
-          monthChangePct,
-        )}% lower than the previous month.`
-      : "Spending is about the same as the previous month.";
+        ? `Spending is ${Math.abs(
+            monthChangePct,
+          )}% higher than the previous month.`
+        : monthChangeDirection === "down"
+          ? `Spending is ${Math.abs(
+              monthChangePct,
+            )}% lower than the previous month.`
+          : "Spending is about the same as the previous month.";
 
   // ---------------- Add Transaction logic ----------------
   async function handleAddTransaction() {
@@ -479,9 +473,7 @@ const budgetGaugeData = [
 
       const month = transactionDraft.date.substring(5, 7);
       const year = transactionDraft.date.substring(0, 4);
-      const transId = doc(
-        collection(db, "users", user.uid, "spending"),
-      ).id;
+      const transId = doc(collection(db, "users", user.uid, "spending")).id;
 
       const yearMonthKey = `${year}-${month}`;
       const normalizedCategory = normalizeId(transactionDraft.category);
@@ -533,7 +525,7 @@ const budgetGaugeData = [
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6 p-6">
       {/* Header + Month Selector + Add Transaction */}
       <div className="flex items-center gap-4">
         <div className="flex flex-col gap-1">
@@ -562,9 +554,7 @@ const budgetGaugeData = [
                   <div className="max-h-64 space-y-1 overflow-y-auto">
                     {last12Months.map((m) => {
                       const mtKey = m.key;
-                      const mtAmount = Number(
-                        monthlyTrends?.[mtKey] || 0,
-                      );
+                      const mtAmount = Number(monthlyTrends?.[mtKey] || 0);
                       return (
                         <button
                           key={m.key}
@@ -659,23 +649,23 @@ const budgetGaugeData = [
                     monthChangeDirection === "up"
                       ? "text-red-400"
                       : monthChangeDirection === "down"
-                      ? "text-emerald-400"
-                      : "text-slate-200"
+                        ? "text-emerald-400"
+                        : "text-slate-200"
                   }
                 >
                   {monthChangeDirection === "up"
                     ? "▲"
                     : monthChangeDirection === "down"
-                    ? "▼"
-                    : "●"}
+                      ? "▼"
+                      : "●"}
                 </span>
                 <span>
                   {Math.abs(monthChangePct)}%
                   {monthChangeDirection === "up"
                     ? " higher than last month"
                     : monthChangeDirection === "down"
-                    ? " lower than last month"
-                    : " same as last month"}
+                      ? " lower than last month"
+                      : " same as last month"}
                 </span>
               </div>
             ) : (
@@ -703,9 +693,7 @@ const budgetGaugeData = [
         </div>
 
         <div className="rounded-xl border bg-white p-4 shadow-sm transition hover:shadow-md">
-          <p className="text-xs uppercase text-gray-500">
-            Monthly Net Income
-          </p>
+          <p className="text-xs uppercase text-gray-500">Monthly Net Income</p>
           <p className="mt-2 text-2xl font-semibold">
             {monthlyIncome > 0 ? `$${monthlyIncome.toFixed(2)}` : "—"}
           </p>
@@ -719,9 +707,7 @@ const budgetGaugeData = [
             Savings Goal (Monthly)
           </p>
           <p className="mt-2 text-2xl font-semibold">
-            {monthlySavingsGoal > 0
-              ? `$${monthlySavingsGoal.toFixed(2)}`
-              : "—"}
+            {monthlySavingsGoal > 0 ? `$${monthlySavingsGoal.toFixed(2)}` : "—"}
           </p>
           <div className="mt-3">
             <div className="mb-1 flex justify-between text-xs text-gray-500">
@@ -734,8 +720,8 @@ const budgetGaugeData = [
                   savingsProgress <= 50
                     ? "bg-green-500"
                     : savingsProgress <= 80
-                    ? "bg-orange-400"
-                    : "bg-red-500"
+                      ? "bg-orange-400"
+                      : "bg-red-500"
                 }`}
                 style={{ width: `${savingsProgress}%` }}
               />
@@ -743,10 +729,7 @@ const budgetGaugeData = [
             <p className="mt-1 text-xs text-gray-500">
               Approx saving this month:{" "}
               {monthlyIncome > 0
-                ? `$${Math.max(
-                    monthlyIncome - thisMonthTotal,
-                    0,
-                  ).toFixed(2)}`
+                ? `$${Math.max(monthlyIncome - thisMonthTotal, 0).toFixed(2)}`
                 : "$0"}
               .
             </p>
@@ -761,17 +744,15 @@ const budgetGaugeData = [
           {/* Category donut */}
           <div className="rounded-xl border bg-white p-4 shadow-sm transition hover:shadow-md">
             <div className="mb-2 flex items-center justify-between">
-              <h2 className="text-sm font-semibold">
-                Spending by Category
-              </h2>
+              <h2 className="text-sm font-semibold">Spending by Category</h2>
               <span className="text-xs text-gray-400">
                 {selectedMonthLabel}
               </span>
             </div>
             {categoryChartData.length === 0 ? (
               <p className="text-sm text-gray-500">
-                No spending recorded in {selectedMonthLabel}. Add a
-                transaction to see this fill in.
+                No spending recorded in {selectedMonthLabel}. Add a transaction
+                to see this fill in.
               </p>
             ) : (
               <div className="h-64">
@@ -791,11 +772,7 @@ const budgetGaugeData = [
                       {categoryChartData.map((entry, index) => (
                         <Cell
                           key={`cell-${entry.id}-${index}`}
-                          fill={
-                            CATEGORY_COLORS[
-                              index % CATEGORY_COLORS.length
-                            ]
-                          }
+                          fill={CATEGORY_COLORS[index % CATEGORY_COLORS.length]}
                         />
                       ))}
                     </Pie>
@@ -821,10 +798,7 @@ const budgetGaugeData = [
                     <Tooltip
                       formatter={(value, name) => {
                         if (name === "spent") {
-                          return [
-                            `$${Number(value).toFixed(2)}`,
-                            "Spent",
-                          ];
+                          return [`$${Number(value).toFixed(2)}`, "Spent"];
                         }
                         return value;
                       }}
@@ -868,11 +842,7 @@ const budgetGaugeData = [
                       {topCategoriesData.map((entry, index) => (
                         <Cell
                           key={entry.id}
-                          fill={
-                            CATEGORY_COLORS[
-                              index % CATEGORY_COLORS.length
-                            ]
-                          }
+                          fill={CATEGORY_COLORS[index % CATEGORY_COLORS.length]}
                         />
                       ))}
                     </Bar>
@@ -893,8 +863,8 @@ const budgetGaugeData = [
             <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
               {categoryChartData.length === 0 && (
                 <p className="text-sm text-gray-500">
-                  Set up categories and budgets in Finance Settings to
-                  see progress here.
+                  Set up categories and budgets in Finance Settings to see
+                  progress here.
                 </p>
               )}
 
@@ -904,15 +874,15 @@ const budgetGaugeData = [
                   pct <= 50
                     ? "bg-green-500"
                     : pct <= 80
-                    ? "bg-orange-400"
-                    : "bg-red-500";
+                      ? "bg-orange-400"
+                      : "bg-red-500";
 
                 const bgTintClass =
                   pct <= 50
                     ? "bg-green-50"
                     : pct <= 80
-                    ? "bg-orange-50"
-                    : "bg-red-50";
+                      ? "bg-orange-50"
+                      : "bg-red-50";
 
                 return (
                   <div
@@ -943,59 +913,59 @@ const budgetGaugeData = [
             </div>
           </div>
 
-{/* Monthly remaining budget gauge (odometer style) */}
-<div className="rounded-xl border bg-white p-4 shadow-sm transition hover:shadow-md">
-  <h2 className="mb-1 text-sm font-semibold">Monthly budget gauge</h2>
-  <p className="mb-2 text-xs text-gray-500">
-    Overall spending vs your total monthly budget.
-  </p>
+          {/* Monthly remaining budget gauge (odometer style) */}
+          <div className="rounded-xl border bg-white p-4 shadow-sm transition hover:shadow-md">
+            <h2 className="mb-1 text-sm font-semibold">Monthly budget gauge</h2>
+            <p className="mb-2 text-xs text-gray-500">
+              Overall spending vs your total monthly budget.
+            </p>
 
-  <div className="flex items-center justify-center">
-    <div className="h-36 w-full">
-      <ResponsiveContainer width="100%" height="100%">
-        <RadialBarChart
-          cx="50%"
-          cy="100%"      // pushes arc down so top half only
-          innerRadius="70%"
-          outerRadius="100%"
-          barSize={16}
-          startAngle={180}
-          endAngle={0}
-          data={budgetGaugeData}
-        >
-          {/* BACKGROUND ARC (empty portion) */}
-          <RadialBar
-            dataKey="value"
-            clockWise
-            background={{ fill: "#e5e7eb" }}
-            cornerRadius={8}
-          />
+            <div className="flex items-center justify-center">
+              <div className="h-36 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadialBarChart
+                    cx="50%"
+                    cy="100%" // pushes arc down so top half only
+                    innerRadius="70%"
+                    outerRadius="100%"
+                    barSize={16}
+                    startAngle={180}
+                    endAngle={0}
+                    data={budgetGaugeData}
+                  >
+                    {/* BACKGROUND ARC (empty portion) */}
+                    <RadialBar
+                      dataKey="value"
+                      clockWise
+                      background={{ fill: "#e5e7eb" }}
+                      cornerRadius={8}
+                    />
 
-          {/* FOREGROUND ARC (colored progress) */}
-          <RadialBar
-            dataKey="value"
-            clockWise
-            cornerRadius={8}
-            fill={gaugeColor}
-          />
-        </RadialBarChart>
-      </ResponsiveContainer>
-    </div>
+                    {/* FOREGROUND ARC (colored progress) */}
+                    <RadialBar
+                      dataKey="value"
+                      clockWise
+                      cornerRadius={8}
+                      fill={gaugeColor}
+                    />
+                  </RadialBarChart>
+                </ResponsiveContainer>
+              </div>
 
-    {/* Right side labels */}
-    <div className="ml-4 flex flex-col text-xs text-gray-700">
-      <span className="text-[10px] uppercase text-gray-400">
-        Budget used
-      </span>
-      <span className="text-xl font-semibold">
-        {budgetUsedPctLabel}%
-      </span>
-      <span className="mt-1 text-gray-500">
-        ${thisMonthTotal.toFixed(2)} / ${monthlyBudget.toFixed(2)}
-      </span>
-    </div>
-  </div>
-</div>
+              {/* Right side labels */}
+              <div className="ml-4 flex flex-col text-xs text-gray-700">
+                <span className="text-[10px] uppercase text-gray-400">
+                  Budget used
+                </span>
+                <span className="text-xl font-semibold">
+                  {budgetUsedPctLabel}%
+                </span>
+                <span className="mt-1 text-gray-500">
+                  ${thisMonthTotal.toFixed(2)} / ${monthlyBudget.toFixed(2)}
+                </span>
+              </div>
+            </div>
+          </div>
 
           {/* Market & Money News */}
           <div className="rounded-xl border bg-white p-4 shadow-sm transition hover:shadow-md">
@@ -1018,9 +988,7 @@ const budgetGaugeData = [
                 >
                   <span
                     className={`h-1.5 w-1.5 rounded-full ${
-                      newsStatus === "live"
-                        ? "bg-emerald-500"
-                        : "bg-gray-400"
+                      newsStatus === "live" ? "bg-emerald-500" : "bg-gray-400"
                     }`}
                   />
                   {newsStatus === "live" ? "LIVE" : "Sample"}
@@ -1029,9 +997,7 @@ const budgetGaugeData = [
             </div>
 
             {newsItems.length === 0 ? (
-              <p className="text-xs text-gray-500">
-                Loading headlines…
-              </p>
+              <p className="text-xs text-gray-500">Loading headlines…</p>
             ) : (
               <div className="mt-2 max-h-56 space-y-1.5 overflow-y-auto pr-1">
                 {newsItems.map((item) => (
@@ -1044,9 +1010,7 @@ const budgetGaugeData = [
                         {item.source}
                       </span>
                       {item.timeAgo && (
-                        <span className="text-gray-400">
-                          {item.timeAgo}
-                        </span>
+                        <span className="text-gray-400">{item.timeAgo}</span>
                       )}
                     </div>
                     <div className="line-clamp-1 font-medium text-gray-800">
@@ -1078,8 +1042,7 @@ const budgetGaugeData = [
           </div>
           {monthlyTrendData.length === 0 ? (
             <p className="text-sm text-gray-500">
-              We’ll show a trend once you have spending across multiple
-              months.
+              We’ll show a trend once you have spending across multiple months.
             </p>
           ) : (
             <div className="h-64">
@@ -1126,9 +1089,7 @@ const budgetGaugeData = [
                     ? categoryIds.indexOf(catId)
                     : index;
                 const dotColor =
-                  CATEGORY_COLORS[
-                    colorIndex % CATEGORY_COLORS.length
-                  ];
+                  CATEGORY_COLORS[colorIndex % CATEGORY_COLORS.length];
                 const dateLabel = tx.date || "-";
                 const nameLabel = getCategoryName(catId);
 
