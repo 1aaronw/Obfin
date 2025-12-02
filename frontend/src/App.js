@@ -1,6 +1,7 @@
 import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
 import Layout from "./layout/Layout";
 import AIAdvisor from "./pages/AIAdvisor";
+import Analytics from "./pages/Analytics";
 import Dashboard from "./pages/Dashboard";
 import FirstTimeUser from "./pages/FirstTimeUser";
 import Login from "./pages/Login";
@@ -24,6 +25,7 @@ function App() {
           <Route path="advisor" element={<AIAdvisor />} />
           <Route path="tax-calculator" element={<TaxCalculator />} />
           <Route path="settings" element={<Settings />} />
+          <Route path="/analytics" element={<Analytics />} />
           {/* You’ll add more pages here later */}
         </Route>
       </Routes>
