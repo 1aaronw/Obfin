@@ -192,22 +192,11 @@ export default function Dashboard() {
   useEffect(() => {
     const loadNews = async () => {
       try {
-        // CRA-style env var name
-        const apiKey = process.env.REACT_APP_MARKETAUX_API_KEY;
+        const res = await fetch(
+          `${process.env.REACT_APP_API_BASE_URL}/api/news`,
+        );
 
-        if (!apiKey) {
-          setNewsStatus("sample");
-          setNewsItems(SAMPLE_NEWS);
-          return;
-        }
-
-        const url = `https://api.marketaux.com/v1/news/all?language=en&filter_entities=true&group_by=source&limit=10&api_token=${encodeURIComponent(
-          apiKey,
-        )}`;
-
-        const res = await fetch(url);
         const contentType = res.headers.get("content-type") || "";
-
         if (!res.ok || !contentType.includes("application/json")) {
           console.warn("News API returned non-JSON or error, using sample.");
           setNewsStatus("sample");
