@@ -1,8 +1,5 @@
 // src/pages/Analytics.jsx
-import {
-  doc,
-  getDoc,
-} from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import { useEffect, useMemo, useState } from "react";
 import {
   Area,
@@ -88,7 +85,9 @@ function getLastNMonths(n = 12) {
 }
 
 function normalizeId(id) {
-  return String(id || "").toLowerCase().trim();
+  return String(id || "")
+    .toLowerCase()
+    .trim();
 }
 
 export default function Analytics() {
@@ -140,6 +139,7 @@ export default function Analytics() {
     ...c,
     id: normalizeId(c.id),
   }));
+  /* eslint-disable */
   const spending = userData?.spending || {};
   const monthlyTrends = userData?.monthlyTrends || {};
   const monthlyIncome = Number(rawBudgets.monthlyIncome || 0);
@@ -325,12 +325,10 @@ export default function Analytics() {
       },
     ];
 
-    const avgTicketPerMonth = Object.values(avgTicketPerMonthMap).map(
-      (r) => ({
-        monthLabel: formatMonthLabel(r.ymKey),
-        avg: r.count > 0 ? r.total / r.count : 0,
-      }),
-    );
+    const avgTicketPerMonth = Object.values(avgTicketPerMonthMap).map((r) => ({
+      monthLabel: formatMonthLabel(r.ymKey),
+      avg: r.count > 0 ? r.total / r.count : 0,
+    }));
 
     // cumulative over time for area chart
     let running = 0;
@@ -379,8 +377,7 @@ export default function Analytics() {
       }
     });
 
-    const dailyRateSoFar =
-      today > 0 ? thisMonthSpend / today : thisMonthSpend;
+    const dailyRateSoFar = today > 0 ? thisMonthSpend / today : thisMonthSpend;
     const projectedEndOfMonth = dailyRateSoFar * daysInMonth;
 
     const totalCategoryBudget = categories.reduce(
@@ -576,8 +573,8 @@ export default function Analytics() {
       rangeMonths === 3
         ? "the last 3 months"
         : rangeMonths === 6
-        ? "the last 6 months"
-        : "the last 12 months";
+          ? "the last 6 months"
+          : "the last 12 months";
 
     // Top category
     const perCat = {};
@@ -618,7 +615,14 @@ export default function Analytics() {
     ]
       .filter(Boolean)
       .join(" ");
-  }, [budgetHealth, filteredMonthKeys, filteredTransactions, rangeMonths, getCategoryName]);
+  }, [
+    budgetHealth,
+    filteredMonthKeys,
+    filteredTransactions,
+    rangeMonths,
+    getCategoryName,
+  ]);
+  /* eslint-disable */
 
   // ------------- UI --------------
 
@@ -642,11 +646,10 @@ export default function Analytics() {
 
   const { weekdayVsWeekend, avgTicketPerMonth, cumulativeSpend } =
     timePatternData;
-  const { rows: heatmapRows, maxVal: heatmapMax, weekdayLabels } =
-    heatmapData;
+  const { rows: heatmapRows, maxVal: heatmapMax, weekdayLabels } = heatmapData;
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6 p-6">
       {/* Header */}
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
@@ -709,8 +712,7 @@ export default function Analytics() {
                   : "bg-gray-100 text-gray-700 hover:bg-gray-200"
               }`}
               style={{
-                borderColor:
-                  CATEGORY_COLORS[index % CATEGORY_COLORS.length],
+                borderColor: CATEGORY_COLORS[index % CATEGORY_COLORS.length],
               }}
             >
               {cat.name}
@@ -736,7 +738,7 @@ export default function Analytics() {
               <div className="relative flex h-20 w-20 items-center justify-center">
                 {/* Ring */}
                 <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-emerald-500/40 via-emerald-400/70 to-emerald-500/40 blur-sm" />
-                <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-slate-900/80 border border-emerald-400/40">
+                <div className="relative flex h-16 w-16 items-center justify-center rounded-full border border-emerald-400/40 bg-slate-900/80">
                   <span className="text-xl font-semibold">
                     {budgetHealth.score}
                   </span>
@@ -769,12 +771,10 @@ export default function Analytics() {
           <h2 className="mb-1 text-sm font-semibold">
             Smart summary of your habits
           </h2>
-          <p className="text-[11px] text-gray-500 mb-2">
+          <p className="mb-2 text-[11px] text-gray-500">
             A quick narrative based on your data (no external AI used).
           </p>
-          <p className="text-xs text-gray-700 leading-relaxed">
-            {aiSummary}
-          </p>
+          <p className="text-xs leading-relaxed text-gray-700">{aiSummary}</p>
         </div>
 
         {/* A3: Radar – balance of spending */}
@@ -789,8 +789,8 @@ export default function Analytics() {
           </div>
           {radarData.length === 0 ? (
             <p className="mt-2 text-xs text-slate-300">
-              Once you have spending across categories in this range,
-              you’ll see their balance here.
+              Once you have spending across categories in this range, you’ll see
+              their balance here.
             </p>
           ) : (
             <div className="h-52">
@@ -801,11 +801,7 @@ export default function Analytics() {
                     dataKey="category"
                     tick={{ fill: "#9ca3af", fontSize: 10 }}
                   />
-                  <PolarRadiusAxis
-                    angle={30}
-                    tick={false}
-                    axisLine={false}
-                  />
+                  <PolarRadiusAxis angle={30} tick={false} axisLine={false} />
                   <Radar
                     name="Share"
                     dataKey="value"
@@ -853,8 +849,8 @@ export default function Analytics() {
 
           {categoryMonthlyData.length === 0 ? (
             <p className="text-sm text-gray-500">
-              We’ll show data here once you have transactions in this
-              time range.
+              We’ll show data here once you have transactions in this time
+              range.
             </p>
           ) : (
             <div className="h-72">
@@ -881,11 +877,7 @@ export default function Analytics() {
                           name={cat.name}
                           stackId="a"
                           radius={[4, 4, 0, 0]}
-                          fill={
-                            CATEGORY_COLORS[
-                              index % CATEGORY_COLORS.length
-                            ]
-                          }
+                          fill={CATEGORY_COLORS[index % CATEGORY_COLORS.length]}
                         />
                       ))
                     : categories
@@ -897,9 +889,7 @@ export default function Analytics() {
                             name={cat.name}
                             radius={[4, 4, 0, 0]}
                             fill={
-                              CATEGORY_COLORS[
-                                index % CATEGORY_COLORS.length
-                              ]
+                              CATEGORY_COLORS[index % CATEGORY_COLORS.length]
                             }
                           />
                         ))}
@@ -939,10 +929,8 @@ export default function Analytics() {
                   <div className="flex items-baseline justify-between">
                     <span>Highest month</span>
                     <span className="font-medium">
-                      {formatMonthLabel(
-                        selectedCategoryStats.bestMonthKey,
-                      )}{" "}
-                      (${selectedCategoryStats.bestMonthAmount.toFixed(2)})
+                      {formatMonthLabel(selectedCategoryStats.bestMonthKey)} ($
+                      {selectedCategoryStats.bestMonthAmount.toFixed(2)})
                     </span>
                   </div>
                 )}
@@ -975,8 +963,7 @@ export default function Analytics() {
           </div>
           {cumulativeSpend.length === 0 ? (
             <p className="text-sm text-gray-500">
-              We’ll show this once you have spending across multiple
-              months.
+              We’ll show this once you have spending across multiple months.
             </p>
           ) : (
             <div className="h-72">
@@ -994,9 +981,7 @@ export default function Analytics() {
                   <Tooltip
                     formatter={(value, name) => [
                       `$${Number(value).toFixed(2)}`,
-                      name === "total"
-                        ? "This month"
-                        : "Cumulative total",
+                      name === "total" ? "This month" : "Cumulative total",
                     ]}
                   />
                   <Legend />
@@ -1033,9 +1018,7 @@ export default function Analytics() {
               Total spent in the selected range.
             </p>
             {weekdayVsWeekend.every((d) => d.amount === 0) ? (
-              <p className="text-xs text-gray-500">
-                Not enough data yet.
-              </p>
+              <p className="text-xs text-gray-500">Not enough data yet.</p>
             ) : (
               <div className="h-32">
                 <ResponsiveContainer width="100%" height="100%">
@@ -1066,9 +1049,7 @@ export default function Analytics() {
               Higher bars mean larger typical purchases.
             </p>
             {avgTicketPerMonth.every((d) => d.avg === 0) ? (
-              <p className="text-xs text-gray-500">
-                Not enough data yet.
-              </p>
+              <p className="text-xs text-gray-500">Not enough data yet.</p>
             ) : (
               <div className="h-32">
                 <ResponsiveContainer width="100%" height="100%">
@@ -1098,9 +1079,7 @@ export default function Analytics() {
       <div className="grid gap-4 md:grid-cols-3">
         {/* Card 1: Projection */}
         <div className="rounded-2xl border bg-white p-4 shadow-sm transition hover:shadow-md">
-          <h2 className="text-sm font-semibold">
-            This month projection
-          </h2>
+          <h2 className="text-sm font-semibold">This month projection</h2>
           {projection ? (
             <>
               <p className="mt-1 text-xs text-gray-500">
@@ -1136,9 +1115,7 @@ export default function Analytics() {
 
         {/* Card 2: Safe daily spend */}
         <div className="rounded-2xl border bg-white p-4 shadow-sm transition hover:shadow-md">
-          <h2 className="text-sm font-semibold">
-            Safe daily spending
-          </h2>
+          <h2 className="text-sm font-semibold">Safe daily spending</h2>
           {projection ? (
             <>
               <p className="mt-1 text-xs text-gray-500">
@@ -1167,8 +1144,7 @@ export default function Analytics() {
             </>
           ) : (
             <p className="mt-1 text-xs text-gray-500">
-              We’ll estimate your safe spend once you have some data
-              this month.
+              We’ll estimate your safe spend once you have some data this month.
             </p>
           )}
         </div>
@@ -1182,9 +1158,7 @@ export default function Analytics() {
             <>
               <p className="mt-1 text-xs text-gray-500">
                 If you reduced{" "}
-                <span className="font-semibold">
-                  {projection.topCatName}
-                </span>{" "}
+                <span className="font-semibold">{projection.topCatName}</span>{" "}
                 spending by 20% this month:
               </p>
               <div className="mt-3 space-y-1 text-xs text-gray-700">
@@ -1207,14 +1181,14 @@ export default function Analytics() {
                 </div>
               </div>
               <p className="mt-2 text-[11px] text-gray-400">
-                This is a simple estimate to help you see impact, not
-                financial advice.
+                This is a simple estimate to help you see impact, not financial
+                advice.
               </p>
             </>
           ) : (
             <p className="mt-1 text-xs text-gray-500">
-              Once you have more spending this month, we’ll show how
-              much you could save by trimming your top category.
+              Once you have more spending this month, we’ll show how much you
+              could save by trimming your top category.
             </p>
           )}
         </div>
@@ -1230,28 +1204,25 @@ export default function Analytics() {
                 Spending heatmap (month × weekday)
               </h2>
               <p className="text-xs text-gray-500">
-                Darker cells indicate higher total spending on that
-                weekday in that month.
+                Darker cells indicate higher total spending on that weekday in
+                that month.
               </p>
             </div>
           </div>
           {heatmapRows.length === 0 || heatmapMax === 0 ? (
             <p className="text-sm text-gray-500">
-              We’ll show this grid once you have spending for multiple
-              months and days.
+              We’ll show this grid once you have spending for multiple months
+              and days.
             </p>
           ) : (
             <div className="overflow-x-auto">
               <div className="inline-block min-w-full align-middle">
                 <div className="grid auto-cols-fr grid-rows-[auto]">
                   {/* Header row */}
-                  <div className="grid grid-cols-8 gap-1 text-[10px] text-gray-500 mb-1">
+                  <div className="mb-1 grid grid-cols-8 gap-1 text-[10px] text-gray-500">
                     <div />
                     {weekdayLabels.map((label) => (
-                      <div
-                        key={label}
-                        className="text-center"
-                      >
+                      <div key={label} className="text-center">
                         {label}
                       </div>
                     ))}
@@ -1261,14 +1232,13 @@ export default function Analytics() {
                     {heatmapRows.map((row) => (
                       <div
                         key={row.ymKey}
-                        className="grid grid-cols-8 gap-1 items-center"
+                        className="grid grid-cols-8 items-center gap-1"
                       >
                         <div className="text-[11px] text-gray-600">
                           {row.monthLabel}
                         </div>
                         {row.values.map((v, idx) => {
-                          const intensity =
-                            heatmapMax > 0 ? v / heatmapMax : 0;
+                          const intensity = heatmapMax > 0 ? v / heatmapMax : 0;
                           const opacity = 0.1 + intensity * 0.9;
                           return (
                             <div
@@ -1277,9 +1247,7 @@ export default function Analytics() {
                               style={{
                                 backgroundColor:
                                   v > 0
-                                    ? `rgba(34,197,94,${opacity.toFixed(
-                                        2,
-                                      )})`
+                                    ? `rgba(34,197,94,${opacity.toFixed(2)})`
                                     : "transparent",
                               }}
                             />
@@ -1296,16 +1264,13 @@ export default function Analytics() {
 
         {/* E2: Month comparison (last 2 months) */}
         <div className="rounded-2xl border bg-white p-4 shadow-sm transition hover:shadow-md">
-          <h2 className="mb-1 text-sm font-semibold">
-            Month comparison
-          </h2>
+          <h2 className="mb-1 text-sm font-semibold">Month comparison</h2>
           <p className="mb-2 text-xs text-gray-500">
             Compare total spend in the latest two months of this range.
           </p>
           {monthComparisonData.length < 2 ? (
             <p className="text-xs text-gray-500">
-              We need at least two months of data in this range to
-              compare.
+              We need at least two months of data in this range to compare.
             </p>
           ) : (
             <div className="h-40">
