@@ -23,6 +23,7 @@ import {
   YAxis,
 } from "recharts";
 import { auth, db } from "../firebase/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 import AddTransactionModal from "./transactions/AddTransactionModal";
 
 // Simple color palette for charts
@@ -159,15 +160,14 @@ export default function Dashboard() {
 
   // 1) Load user data (budgets + spending + monthlyTrends)
   useEffect(() => {
-    const load = async () => {
+    setLoading(true);
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        setErrorMsg("You must be logged in to view your dashboard.");
+        setLoading(false);
+        return;
+      }
       try {
-        const user = auth.currentUser;
-        if (!user) {
-          setErrorMsg("You must be logged in to view your dashboard.");
-          setLoading(false);
-          return;
-        }
-
         const ref = doc(db, "users", user.uid);
         const snap = await getDoc(ref);
         if (!snap.exists()) {
@@ -183,9 +183,9 @@ export default function Dashboard() {
       } finally {
         setLoading(false);
       }
-    };
+    });
 
-    load();
+    return () => unsubscribe();
   }, [refreshKey]);
 
   // 2) Load news (with graceful fallback)

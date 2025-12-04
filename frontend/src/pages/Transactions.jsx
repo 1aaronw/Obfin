@@ -29,7 +29,6 @@ export default function Transactions() {
   const auth = getAuth();
   const user = auth.currentUser;
 
-  // ===================== FETCH USER CATEGORIES =====================
   useEffect(() => {
     async function loadCategories() {
       if (!user) return;
@@ -51,12 +50,10 @@ export default function Transactions() {
     loadCategories();
   }, [user]);
 
-  // ===================== HANDLE FORM CHANGE =====================
   const handleChange = (updatedValues) => {
     setTransaction(updatedValues);
   };
 
-  // ===================== ADD TRANSACTION =====================
   async function handleAddTransaction() {
     if (!transaction.amount || Number(transaction.amount) <= 0) {
       alert("Amount must be a positive number!");
@@ -163,7 +160,7 @@ export default function Transactions() {
         onClose={() => setIsModalOpen(false)}
         onAdd={handleAddTransaction}
         onChange={handleChange}
-        categories={categories} // 🔥 PASS CATEGORIES TO MODAL
+        categories={categories} // PASS CATEGORIES TO MODAL
       />
     </div>
   );

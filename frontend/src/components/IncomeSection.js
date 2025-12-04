@@ -2,7 +2,7 @@ import { useState } from "react";
 
 export default function IncomeSection({ onIncomeChange }) {
   const [income, setIncome] = useState({
-    monthlyIncome: "",
+    annualIncome: "",
     state: "",
     savingsGoal: "",
   });
@@ -20,16 +20,14 @@ export default function IncomeSection({ onIncomeChange }) {
       <h2 className="mb-1 text-lg font-semibold text-gray-800">
         Income Information
       </h2>
-      <p className="mb-4 text-sm text-gray-500">
-        Tell us about your monthly income
-      </p>
+      <p className="mb-4 text-sm text-gray-500">Tell us about your income</p>
 
       <div className="mb-4 grid grid-cols-2 gap-4">
         <input
           type="number"
-          id="monthlyIncome"
-          placeholder="Monthly Income"
-          value={income.monthlyIncome}
+          id="annualIncome"
+          placeholder="Annual Income"
+          value={income.annualIncome}
           onChange={handleChange}
           className="w-full rounded-md border border-gray-300 p-2"
         />
