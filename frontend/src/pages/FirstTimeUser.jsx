@@ -1,7 +1,7 @@
 import { setDoc, doc } from "firebase/firestore";
 import { db } from "../firebase/firebase";
 import { getAuth } from "firebase/auth";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import HeaderSection from "../components/HeaderSection";
 import IncomeSection from "../components/IncomeSection";
 import BudgetSection from "../components/BudgetSection";
@@ -21,10 +21,59 @@ export default function FirstTimeUser() {
   });
 
   const [incomeData, setIncomeData] = useState({
-    monthlyIncome: "",
+    annualIncome: "",
     state: "",
-    savingsGoal: "",
+    monthlySavingsGoal: "",
   });
+
+  const convertToCategories = (budget) => {
+    const keys = [
+      "food",
+      "entertainment",
+      "insurance",
+      "utilities",
+      "miscellaneous",
+    ];
+
+    return keys.map((k) => ({
+      id: k,
+      name: k.charAt(0).toUpperCase() + k.slice(1),
+      amount: budget[k] || 0,
+    }));
+  };
+
+  const [monthlyIncome, setMonthlyIncome] = useState("");
+
+  useEffect(() => {
+    const { annualIncome, state } = incomeData;
+    if (!annualIncome) return;
+
+    const fetchMonthlyIncome = async () => {
+      try {
+        const response = await fetch(
+          "http://localhost:5001/api/tax/calculate",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              income: Number(annualIncome),
+              state,
+            }),
+          },
+        );
+
+        const data = await response.json();
+        if (response.ok) {
+          const autoMonthly = Math.round(data.netIncome / 12);
+          setMonthlyIncome(autoMonthly);
+        }
+      } catch (err) {
+        console.error("Auto income fetch failed:", err);
+      }
+    };
+
+    fetchMonthlyIncome();
+  }, [incomeData.annualIncome, incomeData.state]);
 
   const isBudgetValid = () => {
     //checks every value in the object budget to ensure its not an empty string or a negative number
@@ -34,10 +83,10 @@ export default function FirstTimeUser() {
   };
 
   const isIncomeValid = () => {
-    const { monthlyIncome, savingsGoal, state } = incomeData; // since savingsGoal is a string need to check for it
+    const { annualIncome, savingsGoal, state } = incomeData; // since savingsGoal is a string need to check for it
     return (
-      monthlyIncome !== "" &&
-      Number(monthlyIncome) > 0 &&
+      annualIncome !== "" &&
+      Number(annualIncome) > 0 &&
       savingsGoal !== "" &&
       Number(savingsGoal) > 0 &&
       state !== ""
@@ -49,6 +98,7 @@ export default function FirstTimeUser() {
   };
   const handleIncomeChange = (updatedValues) => {
     setIncomeData(updatedValues);
+    setMonthlyIncome(updatedValues);
   };
 
   const handleCompleteSetup = async () => {
@@ -72,15 +122,12 @@ export default function FirstTimeUser() {
       await setDoc(doc(db, "users", user.uid), {
         createdAt: new Date(),
         budgets: {
-          entertainment: Number(budget.entertainment),
-          food: Number(budget.food),
-          insurance: Number(budget.insurance),
-          utilities: Number(budget.utilities),
-          miscellaneous: Number(budget.miscellaneous),
+          categories: convertToCategories(budget), //new categories structures
+          annualIncome: Number(incomeData.annualIncome),
+          monthlyIncome,
+          state: incomeData.state,
+          monthlySavingsGoal: Number(incomeData.savingsGoal),
         },
-        monthlyIncome: Number(incomeData.monthlyIncome),
-        state: incomeData.state,
-        savingsGoal: Number(incomeData.savingsGoal),
       });
       console.log("Successfully saved!");
       navigate("/dashboard");

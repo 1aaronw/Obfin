@@ -1,6 +1,6 @@
 // src/components/settings/FinanceSettings.jsx
 import { doc, updateDoc } from "firebase/firestore";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState, memo } from "react";
 import { auth, db } from "../../firebase/firebase";
 
 export default function FinanceSettings({ userData }) {
@@ -98,7 +98,7 @@ export default function FinanceSettings({ userData }) {
     const name = prompt("Enter category name:");
     if (!name) return;
 
-    const id = name.toLowerCase().replace(/\s+/g, "-");
+    const id = `cat-${Date.now()}`; // stable & unique
 
     setCategories((prev) => [...prev, { id, name, amount: 0 }]);
   };
@@ -125,7 +125,7 @@ export default function FinanceSettings({ userData }) {
   const updateCategoryAmount = (id, value) => {
     setCategories((prev) =>
       prev.map((cat) =>
-        cat.id === id ? { ...cat, amount: Number(value) || "" } : cat,
+        cat.id === id ? { ...cat, amount: value || "" } : cat,
       ),
     );
   };
@@ -173,7 +173,14 @@ export default function FinanceSettings({ userData }) {
   /* -----------------------------------------
       8. COMPONENT: Individual Category Card
   -------------------------------------------*/
-  function CategoryCard({ cat }) {
+  //prevents all the categories from being rendered
+  const CategoryCard = memo(function CategoryCard({
+    cat,
+    updateCategoryAmount,
+    renameCategory,
+    deleteCategory,
+    categoriesLength,
+  }) {
     const [collapsed, setCollapsed] = useState(false);
 
     return (
@@ -189,7 +196,6 @@ export default function FinanceSettings({ userData }) {
             <span className="text-xs text-gray-500">
               {collapsed ? "Show ▼" : "Hide ▲"}
             </span>
-
             <div className="flex gap-3 text-sm">
               <button
                 className="text-blue-600 underline"
@@ -200,14 +206,9 @@ export default function FinanceSettings({ userData }) {
               >
                 Rename
               </button>
-
               <button
-                disabled={categories.length === 1}
-                className={`underline ${
-                  categories.length === 1
-                    ? "cursor-not-allowed text-gray-400"
-                    : "text-red-600 hover:text-red-700"
-                }`}
+                disabled={categoriesLength === 1}
+                className={`underline ${categoriesLength === 1 ? "cursor-not-allowed text-gray-400" : "text-red-600 hover:text-red-700"}`}
                 onClick={(e) => {
                   e.stopPropagation();
                   deleteCategory(cat.id);
@@ -233,7 +234,7 @@ export default function FinanceSettings({ userData }) {
         )}
       </div>
     );
-  }
+  });
 
   /* -----------------------------
       9. UI BELOW (FULL)
@@ -392,7 +393,14 @@ export default function FinanceSettings({ userData }) {
 
             <div className="space-y-4">
               {categories.map((cat) => (
-                <CategoryCard key={cat.id} cat={cat} />
+                <CategoryCard
+                  key={cat.id}
+                  cat={cat}
+                  updateCategoryAmount={updateCategoryAmount}
+                  renameCategory={renameCategory}
+                  deleteCategory={deleteCategory}
+                  categoriesLength={categories.length}
+                />
               ))}
             </div>
 

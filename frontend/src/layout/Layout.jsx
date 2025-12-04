@@ -1,6 +1,7 @@
 import { Menu, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
+import handleSignOut from "../components/signOut";
 
 export default function Layout() {
   const [isOpen, setIsOpen] = useState(false);
@@ -51,6 +52,12 @@ export default function Layout() {
           <Link to="/settings" className="rounded p-2 hover:bg-gray-700">
             Settings
           </Link>
+          <button
+            onClick={handleSignOut}
+            className="rounded p-2 text-left hover:bg-gray-700"
+          >
+            Sign Out
+          </button>
         </nav>
       </aside>
 
