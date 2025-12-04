@@ -72,7 +72,7 @@ export default function FirstTimeUser() {
     };
 
     fetchMonthlyIncome();
-  }, [incomeData.annualIncome, incomeData.state]);
+  }, [annualIncome, state]);
 
   const isBudgetValid = () => {
     //checks every value in the object budget to ensure its not an empty string or a negative number
