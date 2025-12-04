@@ -43,9 +43,8 @@ export default function FirstTimeUser() {
   };
 
   const [monthlyIncome, setMonthlyIncome] = useState("");
-
+  const { annualIncome, state } = incomeData;
   useEffect(() => {
-    const { annualIncome, state } = incomeData;
     if (!annualIncome) return;
 
     const fetchMonthlyIncome = async () => {
